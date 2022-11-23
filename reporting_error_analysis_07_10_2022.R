@@ -4,7 +4,7 @@
 
 library(tidyverse)
 
-scores <- read_csv("lts_analysis_soft/dataframe_lts_phase2.csv", col_type = "f-fnn")
+scores <- read_csv("dataframe_lts_phase2.csv", col_type = "f-fnn")
 summary(scores)
 
 moses <- scores %>%
@@ -19,6 +19,9 @@ res_cor <- with_mos %>%
 res_cor %>%
   ggplot(aes(external_id, cor_in)) + geom_point()
 with_mos_2 <- with_mos
+
+
+
 
 for (i in 1:5){
   to_remove <- res_cor$external_id[res_cor$cor_in == min(res_cor$cor_in)]
