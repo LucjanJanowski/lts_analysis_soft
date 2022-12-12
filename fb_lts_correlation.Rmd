@@ -1,0 +1,41 @@
+---
+title: "comparing_FB_and_LTS"
+author: "Lucjan Janowski"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(magrittr)
+```
+
+## Reading Data
+
+We have to main source of data. The results from FB experiment and csv from Natalia. 
+
+```{r rading_data}
+fb <- read_csv("MOS_FB/FB_Mobile-Landscape_Hor.csv", col_types = "cnn", col_names = c("video", "mos_fb", "std_fb"), skip = 1)
+lts <- read_csv("phase3_lts_moses.csv", col_types = "cn", col_names = c("video", "mos_lts"), skip = 1)
+lts %<>%
+  mutate(video = substr(video, 1, nchar(video) - 4))
+data_all <- inner_join(lts, fb)
+```
+
+## Making Plots 
+
+For now we need only scatter plot with correlation.
+
+```{r pressure, echo=FALSE}
+ggplot(data_all, aes(x = mos_fb, y = mos_lts)) +
+  # Use geom_point() to add the scatterplot points
+  geom_point() +
+  geom_line(data = tibble(x = c(1, 5), y = c(1, 5)), aes(x = x, y = y), color = "red") + 
+  xlab("MOS Lab Study") +
+  ylab("MOS LTS") +
+  geom_text(x = 1.5, y = 4.5, label = sprintf("cor = %.2f", cor(data_all$mos_lts, data_all$mos_fb)))
+  
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
