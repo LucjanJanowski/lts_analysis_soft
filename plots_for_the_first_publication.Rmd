@@ -1,0 +1,79 @@
+---
+title: "Plots_for_ecologically_valid_lts"
+author: "Lucjan Janowski"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+```
+
+## Plots for publication 
+
+link to overleaf: https://www.overleaf.com/project/62d5cf4ef98e9c60fb6a0da4
+
+```{r reading_data}
+
+
+```
+
+## Correlation FB LTS
+
+You can also embed plots, for example:
+
+```{r fb_lts, echo=FALSE}
+plot(pressure)
+```
+
+## MOS second phase 
+
+You can also embed plots, for example:
+
+```{r mos_second, echo=FALSE}
+plot(pressure)
+```
+
+## Model from second phase + where marked
+
+You can also embed plots, for example:
+
+```{r model_decission, echo=FALSE}
+rm(list = ls())
+plot_data_raw <- read_csv("phase2_lts_for_sigmoid.csv", col_types = "cnnfnnn")
+
+plot_data <- plot_data_raw %>%
+  mutate(user_short = substr(external_id, 1, 5))
+
+n <- 20 #number of vmafs
+fited_vmaf <- tibble(
+  user = rep(unique(plot_data$user_short), n), 
+  real_vmaf = rep(-1, n*length(unique(plot_data$user_short))),
+  model_mos = rep(-1, n*length(unique(plot_data$user_short)))
+  )
+for (user in unique(plot_data$user_short)) {
+  fited_vmaf$real_vmaf[fited_vmaf$user == user] = seq(20, 100, length.out = n)
+}
+
+fited_reports <- plot_data[plot_data$report > 0, c("report", "user_short")]
+fited_reports$real_vmaf <- fited_reports$report
+fited_reports$model_mos <- -1
+
+for (user in unique(plot_data$user_short)) {
+  fit_model <- lm(quality ~ real_vmaf, 
+                  data = plot_data[plot_data$user_short == user,])
+  fited_vmaf$model_mos[fited_vmaf$user == user] <-
+    predict(fit_model, fited_vmaf[fited_vmaf$user == user,])
+  fited_reports$model_mos[fited_reports$user_short == user] <-
+    predict(fit_model, fited_reports[fited_reports$user_short == user,])
+}
+
+fited_vmaf %>%
+  ggplot(aes(real_vmaf, model_mos, color = user)) + 
+    geom_line() +
+    geom_point(data = fited_reports, aes(real_vmaf, model_mos, color = user_short))
+
+
+```
