@@ -77,3 +77,41 @@ fited_vmaf %>%
 
 
 ```
+
+## Model from second phase + where marked - logit
+
+
+```{r model_decission, echo=FALSE}
+rm(list = ls())
+plot_data_raw <- read_csv("phase2_lts_for_sigmoid.csv", col_types = "cnnfnnn")
+plot_data <- plot_data_raw %>%
+  mutate(user_short = substr(external_id, 1, 5))
+n <- 20 #number of vmafs
+fited_vmaf <- tibble(
+  user = rep(unique(plot_data$user_short), n), 
+  real_vmaf = rep(-1, n*length(unique(plot_data$user_short))),
+  model_mos = rep(-1, n*length(unique(plot_data$user_short)))
+  )
+for (user in unique(plot_data$user_short)) {
+  fited_vmaf$real_vmaf[fited_vmaf$user == user] = seq(20, 100, length.out = n)
+}
+fited_reports <- plot_data[plot_data$report > 0, c("report", "user_short")]
+fited_reports$real_vmaf <- fited_reports$report
+fited_reports$model_mos <- -1
+plot_data$quality <- plot_data$quality/5
+for (user in unique(plot_data$user_short)) {
+  fit_model <- glm(quality ~ real_vmaf, 
+                  data = plot_data[plot_data$user_short == user,], family = quasibinomial)
+  summary(fit_model)$coef
+  fited_vmaf$model_mos[fited_vmaf$user == user] <-
+    predict(fit_model, fited_vmaf[fited_vmaf$user == user,], type = "response")
+  fited_reports$model_mos[fited_reports$user_short == user] <-
+    predict(fit_model, fited_reports[fited_reports$user_short == user,], type = "response")
+}
+  fited_vmaf$model_mos <- fited_vmaf$model_mos
+  fited_reports$model_mos <- fited_reports$model_mos
+  g <- ggplot(fited_vmaf, aes(real_vmaf, model_mos, color = user)) + 
+    geom_line() +
+    geom_point(data = fited_reports, aes(real_vmaf, model_mos, color = user_short)) + scale_y_continuous( labels=function(x)x*4+1 )
+  g 
+```
