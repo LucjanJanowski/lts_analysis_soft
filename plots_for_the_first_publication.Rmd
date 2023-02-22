@@ -34,7 +34,7 @@ plot_data_raw %>%
   geom_line(data = tibble(x = c(1, 5), y = c(1, 5)), aes(x, y), color = "red") + 
   geom_text(label = "") +
   annotate("text",label = 
-             sprintf("Corr=%.3f", 
+             sprintf("\U03C1=%.3f", 
                      cor(plot_data_raw$mos_lts, plot_data_raw$mos_fb)), 
            x = 2, y = 4, size = 6) +
   ylim(c(1, 5)) + 
@@ -48,8 +48,7 @@ You can also embed plots, for example:
 
 ```{r mos_second, echo=FALSE}
 rm(list = ls())
-plot_data_raw <- read_csv("phase2_lts_mos.csv", col_types = "cnnnnn")
-plot_data_raw$n <- 30
+plot_data_raw <- read_csv("phase2_lts_mos_n.csv", col_types = "cnnnnnn")
 
 plot_data_raw[plot_data_raw$real_vmaf < 100,] %>%
   ggplot(aes(real_vmaf, mos)) +
