@@ -25,7 +25,21 @@ link to overleaf: https://www.overleaf.com/project/62d5cf4ef98e9c60fb6a0da4
 You can also embed plots, for example:
 
 ```{r fb_lts, echo=FALSE}
-plot(pressure)
+rm(list = ls())
+plot_data_raw <- read_csv("phase3_mosLTS_mosFB.csv", col_types = "cnnnn")
+
+plot_data_raw %>%
+  ggplot(aes(mos_lts, mos_fb)) +
+  geom_point() +
+  geom_line(data = tibble(x = c(1, 5), y = c(1, 5)), aes(x, y), color = "red") + 
+  geom_text(label = "") +
+  annotate("text",label = 
+             sprintf("Corr=%.3f", 
+                     cor(plot_data_raw$mos_lts, plot_data_raw$mos_fb)), 
+           x = 2, y = 4, size = 6) +
+  ylim(c(1, 5)) + 
+  xlim(c(1, 5))
+
 ```
 
 ## MOS second phase 
@@ -33,7 +47,18 @@ plot(pressure)
 You can also embed plots, for example:
 
 ```{r mos_second, echo=FALSE}
-plot(pressure)
+rm(list = ls())
+plot_data_raw <- read_csv("phase2_lts_mos.csv", col_types = "cnnnnn")
+plot_data_raw$n <- 30
+
+plot_data_raw[plot_data_raw$real_vmaf < 100,] %>%
+  ggplot(aes(real_vmaf, mos)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = mos - 1.96*sd/sqrt(n), ymax = mos + 1.96*sd/sqrt(n))) +
+  stat_smooth() +
+  ylim(c(1, 5))
+
+
 ```
 
 ## Model from second phase + where marked
@@ -98,7 +123,8 @@ for (user in unique(plot_data$user_short)) {
 fited_reports <- plot_data[plot_data$report > 0, c("report", "user_short")]
 fited_reports$real_vmaf <- fited_reports$report
 fited_reports$model_mos <- -1
-plot_data$quality <- plot_data$quality/5
+plot_data$quality <- (plot_data$quality - 1)/4
+# plot_data <- plot_data[plot_data$vmaf < 100,]
 for (user in unique(plot_data$user_short)) {
   fit_model <- glm(quality ~ real_vmaf, 
                   data = plot_data[plot_data$user_short == user,], family = quasibinomial)
@@ -112,6 +138,8 @@ for (user in unique(plot_data$user_short)) {
   fited_reports$model_mos <- fited_reports$model_mos
   g <- ggplot(fited_vmaf, aes(real_vmaf, model_mos, color = user)) + 
     geom_line() +
-    geom_point(data = fited_reports, aes(real_vmaf, model_mos, color = user_short)) + scale_y_continuous( labels=function(x)x*4+1 )
+    geom_point(data = fited_reports, aes(real_vmaf, model_mos, color = user_short)) + scale_y_continuous( labels=function(x)x*4+1 ) +
+    # stat_smooth(method = glm, method.args = list(family = "quasibinomial")) +
+    xlab("VMAF")
   g 
 ```
