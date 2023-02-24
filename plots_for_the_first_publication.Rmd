@@ -2,12 +2,15 @@
 title: "Plots_for_ecologically_valid_lts"
 author: "Lucjan Janowski"
 date: "`r Sys.Date()`"
-output: pdf_document
+output: pdf_document:
+  keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(ggplot2)
+library(ggthemes)
 
 ```
 
@@ -31,14 +34,14 @@ plot_data_raw <- read_csv("phase3_mosLTS_mosFB.csv", col_types = "cnnnn")
 plot_data_raw %>%
   ggplot(aes(mos_lts, mos_fb)) +
   geom_point() +
-  geom_line(data = tibble(x = c(1, 5), y = c(1, 5)), aes(x, y), color = "red") + 
+  geom_line(data = tibble(x = c(1, 5), y = c(1, 5)), aes(x, y), color = "red", size = 0.3) + 
   geom_text(label = "") +
   annotate("text",label = 
              sprintf("\U03C1=%.3f", 
                      cor(plot_data_raw$mos_lts, plot_data_raw$mos_fb)), 
            x = 2, y = 4, size = 6) +
   ylim(c(1, 5)) + 
-  xlim(c(1, 5))
+  xlim(c(1, 5)) + labs(title = "Correlation between lab study and long term study", x = "MOS for long term study", y = "MOS for lab study") + theme_bw()
 
 ```
 
@@ -54,8 +57,8 @@ plot_data_raw[plot_data_raw$real_vmaf < 100,] %>%
   ggplot(aes(real_vmaf, mos)) +
   geom_point() +
   geom_errorbar(aes(ymin = mos - 1.96*sd/sqrt(n), ymax = mos + 1.96*sd/sqrt(n))) +
-  stat_smooth() +
-  ylim(c(1, 5))
+  stat_smooth(size = 0.3) +
+  ylim(c(1, 5)) + xlim(c(20, 100)) + theme_bw() + labs(title = "MOS for second phase of the study", x = "MOS", y = "VMAF")
 
 
 ```
@@ -135,10 +138,69 @@ for (user in unique(plot_data$user_short)) {
 }
   fited_vmaf$model_mos <- fited_vmaf$model_mos
   fited_reports$model_mos <- fited_reports$model_mos
-  g <- ggplot(fited_vmaf, aes(real_vmaf, model_mos, color = user)) + 
-    geom_line() +
+  fited_vmaf %>% 
+    mutate(isHighlighted = (user == '3adab' | user == '88df4' | user == 'bd209')) %>% 
+    ggplot(aes(real_vmaf, model_mos, color = user)) + 
+    geom_line(aes(linetype = isHighlighted), size=0.3) +
     geom_point(data = fited_reports, aes(real_vmaf, model_mos, color = user_short)) + scale_y_continuous( labels=function(x)x*4+1 ) +
     # stat_smooth(method = glm, method.args = list(family = "quasibinomial")) +
-    xlab("VMAF")
-  g 
+    labs(title = "Logistic model of scores versus VMAF", x = "VMAF", y = "Modelled score", color = "User ID") + theme_bw() + scale_linetype_manual(values = c("dashed", "solid"), guide = "none")
+
+```
+
+## Confidence intervals (or rather actual rating points) for logit
+```{r model_decission, echo=FALSE}
+
+rm(list = ls())
+plot_data_raw <- read_csv("phase2_lts_for_sigmoid.csv", col_types = "cnnfnnn")
+plot_data <- plot_data_raw %>%
+  mutate(user_short = substr(external_id, 1, 5))
+n <- 20 #number of vmafs
+z <- unique(plot_data$user_short)
+for (x in 1:10){
+  user_id = z[x]
+  plot_x <- plot_data[grepl(user_id, plot_data$user_short),]
+  fited_vmaf <- tibble(
+  user = rep(unique(plot_x$user_short), n), 
+  real_vmaf = rep(0, n*length(unique(plot_x$user_short))), model_mos = rep(0, n*length(unique(plot_x$user_short))))
+  fited_vmaf$real_vmaf[fited_vmaf$user == user_id] = seq(20, 100, length.out = n)
+  fited_reports <- plot_x[plot_x$report > 0, c("report", "user_short")]
+  fited_reports$real_vmaf <- fited_reports$report
+  fited_reports$model_mos <- -1
+  plot_x$quality <- (plot_x$quality - 1)/4
+# plot_data <- plot_data[plot_data$vmaf < 100,]
+  fit_model <- glm(quality ~ real_vmaf, data = plot_x[plot_x$user_short == user_id,], family = quasibinomial)
+  summary(fit_model)$coef
+  plotdat <- data.frame(fited_vmaf[fited_vmaf$user == user_id,])
+  fited_vmaf$model_mos[fited_vmaf$user == user_id] <-
+  predict(fit_model, newdata = plotdat, type = "response")
+  pred <- predict(fit_model, newdata = plotdat, type = "response", se.fit = TRUE)
+  str(pred)
+  fited_reports$model_mos[fited_reports$user_short == user_id] <-
+  predict(fit_model, fited_reports[fited_reports$user_short == user_id,], type = "response")
+
+  p <- ggplot(data = fited_vmaf, aes(real_vmaf, model_mos)) + scale_y_continuous( labels=function(x)x*4+1) +
+  geom_smooth(method = glm, method.args = list(family = "binomial"), se = TRUE) + labs(title = "Logit vs VMAF - CI automatically generated", x = "VMAF", y = "Modelled score") +   geom_point(data = fited_reports, aes(real_vmaf, model_mos), color = "red") + annotate("text",label = sprintf("ID=%s", user_id), x = 40, y = 1, size = 4) + geom_point(data = plot_x, aes(real_vmaf, quality), color = "black") +  annotate("text",label = sprintf("ID=%s", user_id), x = 80, y = 0, size = 4)
+  
+  print(p)
+  
+  
+preddat <- predict(fit_model, newdata = plotdat, type = "response", se.fit = TRUE) %>% 
+  as.data.frame() %>% 
+  mutate(real_vmaf = fited_vmaf$real_vmaf,
+  lower = fit - 1.96*se.fit, 
+  upper = fit + 1.96*se.fit) 
+
+  
+  t <-ggplot(data = preddat, aes(x = real_vmaf, 
+                   y = fit)) + 
+  geom_line(colour = "blue") + 
+  geom_ribbon(aes(ymin = lower,
+                  ymax = upper), 
+              alpha = 0.5) + 
+  scale_y_continuous(labels=function(x)x*4+1) + labs(title = "Logit vs VMAF - CI manually generated", x = "VMAF", y = "Modelled score") + annotate("text",label = sprintf("ID=%s", user_id), x = 40, y = 1, size = 4)  + geom_point(data = fited_reports, aes(real_vmaf, model_mos), color = "red") + geom_point(data = plot_x, aes(real_vmaf, quality), color = "black") + annotate("text",label = sprintf("ID=%s", user_id), x = 80, y = 0, size = 4)
+  
+  print(t)
+}
+
 ```
