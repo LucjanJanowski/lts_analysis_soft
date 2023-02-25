@@ -58,7 +58,7 @@ plot_data_raw[plot_data_raw$real_vmaf < 100,] %>%
   geom_point() +
   geom_errorbar(aes(ymin = mos - 1.96*sd/sqrt(n), ymax = mos + 1.96*sd/sqrt(n))) +
   stat_smooth(size = 0.3) +
-  ylim(c(1, 5)) + xlim(c(20, 100)) + theme_bw() + labs(title = "MOS for second phase of the study", x = "MOS", y = "VMAF")
+  ylim(c(1, 5)) + xlim(c(20, 100)) + theme_bw() + labs(title = "MOS for second phase of the study", x = "VMAF", y = "MOS")
 
 
 ```
