@@ -58,7 +58,7 @@ plot_data_raw[plot_data_raw$real_vmaf < 100,] %>%
   geom_point() +
   geom_errorbar(aes(ymin = mos - 1.96*sd/sqrt(n), ymax = mos + 1.96*sd/sqrt(n))) +
   stat_smooth(size = 0.3) +
-  ylim(c(1, 5)) + xlim(c(20, 100)) + theme_bw() + labs(title = "MOS for second phase of the study", x = "VMAF", y = "MOS")
+  ylim(c(1, 5)) + xlim(c(20, 100)) + theme_bw() + labs(title = "MOS for second phase of the study", x = "VMAF", y = "MOS") + scale_x_reverse()
 
 
 ```
@@ -144,7 +144,7 @@ for (user in unique(plot_data$user_short)) {
     geom_line(aes(linetype = isHighlighted), size=0.3) +
     geom_point(data = fited_reports, aes(real_vmaf, model_mos, color = user_short)) + scale_y_continuous( labels=function(x)x*4+1 ) +
     # stat_smooth(method = glm, method.args = list(family = "quasibinomial")) +
-    labs(title = "Logistic model of scores versus VMAF", x = "VMAF", y = "Modelled score", color = "User ID") + theme_bw() + scale_linetype_manual(values = c("dashed", "solid"), guide = "none")
+    labs(title = "Logistic model of scores versus VMAF", x = "VMAF", y = "Modelled score", color = "User ID") + theme_bw() + scale_linetype_manual(values = c("dashed", "solid"), guide = "none") + scale_x_reverse()
 
 ```
 
