@@ -141,10 +141,10 @@ for (user in unique(plot_data$user_short)) {
   fited_vmaf %>% 
     mutate(isHighlighted = (user == '3adab' | user == '88df4' | user == 'bd209')) %>% 
     ggplot(aes(real_vmaf, model_mos, color = user)) + 
-    geom_line(aes(linetype = isHighlighted), size=0.3) +
+    geom_line(aes(alpha = isHighlighted), size=0.3) +
     geom_point(data = fited_reports, aes(real_vmaf, model_mos, color = user_short)) + scale_y_continuous( labels=function(x)x*4+1 ) +
     # stat_smooth(method = glm, method.args = list(family = "quasibinomial")) +
-    labs(title = "Logistic model of scores versus VMAF", x = "VMAF", y = "Modelled score", color = "User ID") + theme_bw() + scale_linetype_manual(values = c("dashed", "solid"), guide = "none") + scale_x_reverse()
+    labs(title = "Logistic model of scores versus VMAF", x = "VMAF", y = "Modelled score", color = "User ID") + theme_bw() + scale_alpha_discrete(range = c(0.35, 1), guide = "none") + scale_x_reverse()
 
 ```
 
