@@ -9,6 +9,8 @@ scores_ph4$external_id <- substr(scores_ph4$external_id, 1, 5)
 scores_ph4$video_n <- as.numeric(scores_ph4$video_n)
 #there is no video of number 36, so this part fixes the week division
 scores_ph4$video_n[scores_ph4$video_n >35] <-  scores_ph4$video_n[scores_ph4$video_n >35] - 1
+#there is no video of number 66, so this part fixes the week division
+scores_ph4$video_n[scores_ph4$video_n >65] <-  scores_ph4$video_n[scores_ph4$video_n >65] - 1
 scores_ph4$week <-  as.integer(((scores_ph4$video_n - 1)/7) + 1)
 scores_ph4$day <- scores_ph4$video_n %% 7
 
@@ -33,7 +35,7 @@ scores_ph4$Friday[scores_ph4$day == 5] <- scores_ph4$quality[scores_ph4$day == 5
 scores_ph4$Saturday[scores_ph4$day == 6] <- scores_ph4$quality[scores_ph4$day == 6]
 
 #delate the unfull week
-scores_ph4 <- scores_ph4[!grepl("10", scores_ph4$week),]
+scores_ph4 <- scores_ph4[!grepl("11", scores_ph4$week),]
 
 df_s <- data.frame(matrix(ncol = 14, nrow = 0))
 colnames(df_s) <- c("external_id", "week", "mo", "tu", "we", "th", "fr", "sa", "n", "n_lowq", "q2", "n_full", "n_obs", "q4")
@@ -67,15 +69,18 @@ for (p in 1:length(z)){
   df_s <- rbind(df_s, d0)
 }
 
+df_s$week_q <- sprintf("%d,%d,%d,%d,%d,%d", df_s$mo, df_s$tu, df_s$we, df_s$th, df_s$fr, df_s$sa)
+
 #mos for all observations
   d_mos <- df_s %>%
   group_by(week) %>%
     dplyr::summarize(n_votes = n(), mos = mean(q2, na.rm = TRUE), sd = sd(q2, na.rm = TRUE))
 
+  
 #mos for only full observations
   d_mos_full <- df_s %>% filter(n == 7) %>%
     group_by(week) %>%
-    dplyr::summarize(n_votes = n(), mos = mean(q2, na.rm = TRUE), sd = sd(q2, na.rm = TRUE), mean_q = mean((mo+tu+we+th+fr+sa)/6, na.rm = TRUE))
+    dplyr::summarize(n_votes = n(), week_q = substr(paste(week_q, collapse = ""), 1, 11), mos = mean(q2, na.rm = TRUE), sd = sd(q2, na.rm = TRUE), mean_q = mean((mo+tu+we+th+fr+sa)/6, na.rm = TRUE))
   
 d_mos_full %>%
   ggplot(aes(week, mos)) + geom_errorbar(aes(ymin = mos - 1.96*sd/sqrt(n_votes), 
