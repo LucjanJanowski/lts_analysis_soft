@@ -1,0 +1,180 @@
+---
+title: "Data_analysis"
+author: "Lucjan Janowski"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Reading data
+
+Data are prepared by script `analysis_4ph.R`. Here we only read the data.
+
+```{r cars}
+data_by_weeks <- read_csv("phase4_current_results.csv", col_types = "ffnnnnnnnnnnncc")
+
+
+```
+
+## Data visualization
+
+Simple data visualization.
+
+```{r pressure, echo=FALSE}
+
+data_by_weeks %>%
+  group_by(external_id) %>%
+  summarise(n = sum(n == 7), count_total = n()) %>%
+  ggplot(aes(external_id, n, color = count_total)) + geom_point() + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+    scale_y_continuous(breaks = seq(0, 12, 2)) 
+
+data_by_weeks %>%
+  group_by(external_id) %>%
+  summarise(n = sum(n >= 3)) %>%
+  ggplot(aes(external_id, n)) + geom_point() + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
+    scale_y_continuous(breaks = seq(0, 12, 2)) 
+
+data_by_weeks %>%
+  filter(n == 7) %>%
+  group_by(week) %>%
+  mutate(mos = mean(q2)) %>%
+  ungroup() %>%
+  group_by(external_id) %>%
+  summarize(bias = mean(q2 - mos, na.rm = TRUE), n = n()) %>%
+#  mutate(n = as.factor(n)) %>%
+  ggplot(aes(external_id, bias, color = n)) + geom_point() + 
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+tmp <- data_by_weeks %>%
+  filter(n == 7) %>%
+  group_by(week) %>%
+  mutate(mos = mean(q2)) %>%
+  ungroup() 
+
+
+data_by_weeks %>%
+  filter(n == 7) %>%
+  group_by(week) %>%
+  mutate(mos = mean(q2)) %>%
+  ungroup() %>%
+  group_by(external_id) %>%
+  mutate(bias = mean(q2 - mos, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(new_q2 = q2 - bias) %>%
+  group_by(week, mos) %>%
+  mutate(new_mos = mean(new_q2)) %>%
+  ggplot(aes(mos, mos - new_mos)) + geom_point()
+
+data_with_bias <- data_by_weeks %>%
+  filter(n == 7) %>%
+  group_by(week) %>%
+  mutate(mos = mean(q2)) %>%
+  ungroup() %>%
+  group_by(external_id) %>%
+  mutate(bias = mean(q2 - mos, na.rm = TRUE)) %>%
+  ungroup() %>%
+  mutate(new_q2 = q2 - bias) %>%
+  group_by(week, mos) %>%
+  mutate(new_mos = mean(new_q2))
+
+```
+
+## Day Influence 
+
+We consider different funcitons of time. The simplest is all values count the same (simple mean). We are considereing different option like only the last, only the first, mostly last and first etc. 
+
+Function to be considered:
+* $$f(n) = 1/6$$ - simple mean `f_mean`
+* $$f(n) = 1/21 * n$$ so the first day counts the least, the last day counts the most
+* $$f(n) = 1/21 * (7 - n)$$ the revers of the previous function
+* $$f(n) =  1/12 \lceil |n - 3.5| \rceil$$
+* $$f(n) = e^{?} $$
+
+```{r taking_exp}
+f_mean <- function(x) {
+  tmp <- x[,1]
+  tmp[is.na(x[,1])] <- 0
+  norm <- rep(1, nrow(x))
+  norm[is.na(x[,1])] <- 0
+  for (i in c(2:6)){
+    tmp_norm <- rep(1, nrow(x))
+    tmp_norm[is.na(x[,i])] <- 0
+    norm <- norm + tmp_norm
+    tmp_na <- x[,i]
+    tmp_na[is.na(tmp_na)] <- 0
+    tmp <- tmp + tmp_na
+  }
+  return(tmp / norm)
+}
+
+f_lin_last <- function(x) {
+  norm <- rep(1, nrow(x))
+  norm[is.na(x[,1])] <- 0
+  tmp <- x[,1]
+  tmp[is.na(x[,1])] <- 0
+  tmp <- tmp * norm
+  for (i in c(2:6)){
+    tmp_norm <- rep(i, nrow(x))
+    tmp_norm[is.na(x[,i])] <- 0
+    norm <- norm + tmp_norm
+    tmp_na <- x[,i]
+    tmp_na[is.na(tmp_na)] <- 0
+    tmp <- tmp + tmp_na * tmp_norm
+  }
+  return(tmp / norm)
+}
+
+f_lin_first <- function(x) {
+  norm <- rep(6, nrow(x))
+  norm[is.na(x[,1])] <- 0
+  tmp <- x[,1]
+  tmp[is.na(x[,1])] <- 0
+  tmp <- tmp * norm
+  for (i in c(2:6)){
+    tmp_norm <- rep(7-i, nrow(x))
+    tmp_norm[is.na(x[,i])] <- 0
+    norm <- norm + tmp_norm
+    tmp_na <- x[,i]
+    tmp_na[is.na(tmp_na)] <- 0
+    tmp <- tmp + tmp_na * tmp_norm
+  }
+  return(tmp / norm)
+}
+
+f_lin_ends <- function(x) {
+  norm <- rep(3, nrow(x))
+  norm[is.na(x[,1])] <- 0
+  tmp <- x[,1]
+  tmp[is.na(x[,1])] <- 0
+  tmp <- tmp * norm
+  for (i in c(2:6)){
+    tmp_norm <- rep(ceiling(abs(3.5 - i)), nrow(x))
+    tmp_norm[is.na(x[,i])] <- 0
+    norm <- norm + tmp_norm
+    tmp_na <- x[,i]
+    tmp_na[is.na(tmp_na)] <- 0
+    tmp <- tmp + tmp_na * tmp_norm
+  }
+  return(tmp / norm)
+}
+
+data_by_weeks$f_mean = f_mean(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]))
+data_by_weeks$f_lin_last = f_lin_last(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]))
+data_by_weeks$f_lin_first = f_lin_first(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]))
+data_by_weeks$f_lin_ends = f_lin_ends(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]))
+
+
+```
+
+
+
+
+
+
+
