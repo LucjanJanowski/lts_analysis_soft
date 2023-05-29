@@ -28,14 +28,14 @@ Simple data visualization.
 
 data_by_weeks %>%
   group_by(external_id) %>%
-  summarise(n = sum(n == 7), count_total = n()) %>%
+  dplyr::summarise(n = sum(n == 7), count_total = n()) %>%
   ggplot(aes(external_id, n, color = count_total)) + geom_point() + 
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
     scale_y_continuous(breaks = seq(0, 12, 2)) 
 
 data_by_weeks %>%
   group_by(external_id) %>%
-  summarise(n = sum(n >= 3)) %>%
+  dplyr::summarise(n = sum(n >= 3)) %>%
   ggplot(aes(external_id, n)) + geom_point() + 
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
     scale_y_continuous(breaks = seq(0, 12, 2)) 
@@ -43,10 +43,10 @@ data_by_weeks %>%
 data_by_weeks %>%
   filter(n == 7) %>%
   group_by(week) %>%
-  mutate(mos = mean(q2)) %>%
+  dplyr::mutate(mos = mean(q2)) %>%
   ungroup() %>%
   group_by(external_id) %>%
-  summarize(bias = mean(q2 - mos, na.rm = TRUE), n = n()) %>%
+  dplyr::summarize(bias = mean(q2 - mos, na.rm = TRUE), n = n()) %>%
 #  mutate(n = as.factor(n)) %>%
   ggplot(aes(external_id, bias, color = n)) + geom_point() + 
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
@@ -61,27 +61,27 @@ tmp <- data_by_weeks %>%
 data_by_weeks %>%
   filter(n == 7) %>%
   group_by(week) %>%
-  mutate(mos = mean(q2)) %>%
+  dplyr::mutate(mos = mean(q2)) %>%
   ungroup() %>%
   group_by(external_id) %>%
-  mutate(bias = mean(q2 - mos, na.rm = TRUE)) %>%
+  dplyr::mutate(bias = mean(q2 - mos, na.rm = TRUE)) %>%
   ungroup() %>%
-  mutate(new_q2 = q2 - bias) %>%
+  dplyr::mutate(new_q2 = q2 - bias) %>%
   group_by(week, mos) %>%
-  mutate(new_mos = mean(new_q2)) %>%
+  dplyr::mutate(new_mos = mean(new_q2)) %>%
   ggplot(aes(mos, mos - new_mos)) + geom_point()
 
 data_with_bias <- data_by_weeks %>%
   filter(n == 7) %>%
   group_by(week) %>%
-  mutate(mos = mean(q2)) %>%
+  dplyr::mutate(mos = mean(q2)) %>%
   ungroup() %>%
   group_by(external_id) %>%
-  mutate(bias = mean(q2 - mos, na.rm = TRUE)) %>%
+  dplyr::mutate(bias = mean(q2 - mos, na.rm = TRUE)) %>%
   ungroup() %>%
   mutate(new_q2 = q2 - bias) %>%
   group_by(week, mos) %>%
-  mutate(new_mos = mean(new_q2))
+  dplyr::mutate(new_mos = mean(new_q2))
 
 ```
 
@@ -169,6 +169,10 @@ data_by_weeks$f_lin_last = f_lin_last(as.matrix(data_by_weeks[,c("mo", "tu", "we
 data_by_weeks$f_lin_first = f_lin_first(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]))
 data_by_weeks$f_lin_ends = f_lin_ends(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]))
 
+data_by_weeks$res_mean <- data_by_weeks$f_mean - data_by_weeks$q2
+data_by_weeks$res_last <-data_by_weeks$f_lin_last - data_by_weeks$q2
+data_by_weeks$res_first <-data_by_weeks$f_lin_first - data_by_weeks$q2
+data_by_weeks$res_ends <-data_by_weeks$f_lin_ends - data_by_weeks$q2
 
 ```
 

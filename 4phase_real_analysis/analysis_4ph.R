@@ -35,13 +35,19 @@ scores_ph4$Friday[scores_ph4$day == 5] <- scores_ph4$quality[scores_ph4$day == 5
 scores_ph4$Saturday[scores_ph4$day == 6] <- scores_ph4$quality[scores_ph4$day == 6]
 
 #delate the unfull week
-scores_ph4 <- scores_ph4[!grepl("12", scores_ph4$week),]
+scores_ph4 <- scores_ph4[!grepl("13", scores_ph4$week),]
+
+
 
 df_s <- data.frame(matrix(ncol = 14, nrow = 0))
 colnames(df_s) <- c("external_id", "week", "mo", "tu", "we", "th", "fr", "sa", "n", "n_lowq", "q2", "n_full", "n_obs", "q4")
 
 w <- scores_ph4 %>% group_by(week)
 z <- group_split(w)
+n_watched_testers <- scores_ph4 %>%
+  group_by(external_id) %>%
+  dplyr::summarize(perc_videos = n()/(7*length(z)))
+
 for (p in 1:length(z)){
   my_list <- unlist(z[p], recursive = FALSE)
   d <- as.data.frame(my_list)
@@ -85,9 +91,20 @@ df_s$week_q <- sprintf("%d,%d,%d,%d,%d,%d", df_s$mo, df_s$tu, df_s$we, df_s$th, 
 d_mos_full %>%
   ggplot(aes(week, mos)) + geom_errorbar(aes(ymin = mos - 1.96*sd/sqrt(n_votes), 
                                              ymax = mos + 1.96*sd/sqrt(n_votes)))
-  
+
+#check answers for content questions
+scores_ph4$question <- ifelse(grepl("n.mp4", scores_ph4$video), FALSE, ifelse(grepl("y.mp4", scores_ph4$video), TRUE, NA))
+scores_ph4$content_q <- ifelse(scores_ph4$question == 'FALSE' & scores_ph4$q3 == 'FALSE', 1,
+                    ifelse(scores_ph4$question == 'TRUE' & scores_ph4$q3 == 'TRUE', 1, 0))
+
+content <- scores_ph4 %>% filter(!is.na(content_q)) %>%
+  group_by(external_id) %>%
+  dplyr::summarize(count(content_q))
+
 #save as csv
   write.csv(df_s,"phase4_current_results.csv", row.names = FALSE)
+  write.csv(content,"phase4_content_quest.csv", row.names = FALSE)
+  write.csv(n_watched_testers,"phase4_percantage_watched.csv", row.names = FALSE)
   write.csv(d_mos,"phase4_mos.csv", row.names = FALSE)
   write.csv(d_mos_full,"phase4_mos_onlyfullobs.csv", row.names = FALSE)
   
