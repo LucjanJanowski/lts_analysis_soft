@@ -8,6 +8,7 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(ggpubr)
 ```
 
 ## Reading data
@@ -173,6 +174,108 @@ data_by_weeks$res_mean <- data_by_weeks$f_mean - data_by_weeks$q2
 data_by_weeks$res_last <-data_by_weeks$f_lin_last - data_by_weeks$q2
 data_by_weeks$res_first <-data_by_weeks$f_lin_first - data_by_weeks$q2
 data_by_weeks$res_ends <-data_by_weeks$f_lin_ends - data_by_weeks$q2
+
+data_by_weeks %>%
+  filter(n == 7) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  summarize(mos = mean(q2), f_mean = mean(f_mean)) %>%
+  ggscatter(x = "f_mean", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+  
+data_by_weeks %>%
+  filter(n == 7) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  summarize(mos = mean(q2), f_lin_last = mean(f_lin_last)) %>%
+  ggscatter(x = "f_lin_last", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+
+data_by_weeks %>%
+  filter(n == 7) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  summarize(mos = mean(q2), f_lin_first = mean(f_lin_first)) %>%
+  ggscatter(x = "f_lin_first", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+
+data_by_weeks %>%
+  filter(n == 7) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  summarize(mos = mean(q2), f_lin_ends = mean(f_lin_ends)) %>%
+  ggscatter(x = "f_lin_ends", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  summarize(mos = mean(q2), f_mean = mean(f_mean), n = n()) %>%
+  ggscatter(x = "f_mean", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  summarize(mos = mean(q2), f_lin_last = mean(f_lin_last), n = n()) %>%
+  ggscatter(x = "f_lin_last", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  summarize(mos = mean(q2), f_lin_first = mean(f_lin_first), n = n()) %>%
+  ggscatter(x = "f_lin_first", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  summarize(mos = mean(q2), f_lin_ends = mean(f_lin_ends), n = n()) %>%
+  ggscatter(x = "f_lin_ends", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+
+
 
 ```
 
