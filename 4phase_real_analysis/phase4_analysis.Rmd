@@ -32,14 +32,14 @@ data_by_weeks %>%
   dplyr::summarise(n = sum(n == 7), count_total = n()) %>%
   ggplot(aes(external_id, n, color = count_total)) + geom_point() + 
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-    scale_y_continuous(breaks = seq(0, 12, 2)) 
+    scale_y_continuous(breaks = seq(0, 20, 2)) 
 
 data_by_weeks %>%
   group_by(external_id) %>%
   dplyr::summarise(n = sum(n >= 3)) %>%
   ggplot(aes(external_id, n)) + geom_point() + 
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + 
-    scale_y_continuous(breaks = seq(0, 12, 2)) 
+    scale_y_continuous(breaks = seq(0, 20, 2)) 
 
 data_by_weeks %>%
   filter(n == 7) %>%
@@ -92,9 +92,9 @@ We consider different funcitons of time. The simplest is all values count the sa
 
 Function to be considered:
 * $$f(n) = 1/6$$ - simple mean `f_mean`
-* $$f(n) = 1/21 * n$$ so the first day counts the least, the last day counts the most
-* $$f(n) = 1/21 * (7 - n)$$ the revers of the previous function
-* $$f(n) =  1/12 \lceil |n - 3.5| \rceil$$
+* $$f(n) = 1/21 * n$$ so the first day counts the least, the last day counts the most `f_lin_last`
+* $$f(n) = 1/21 * (7 - n)$$ the reverse of the previous function `f_lin_first`
+* $$f(n) =  1/12 \lceil |n - 3.5| \rceil$$ `f_lin_ends`
 * $$f(n) = e^{?} $$
 
 ```{r taking_exp}
@@ -179,101 +179,156 @@ data_by_weeks %>%
   filter(n == 7) %>%
   mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
   group_by(week_private) %>%
-  summarize(mos = mean(q2), f_mean = mean(f_mean)) %>%
+  dplyr::summarize(mos = mean(q2), f_mean = mean(f_mean)) %>%
   ggscatter(x = "f_mean", y = "mos",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
    conf.int = TRUE # Add confidence interval
    ) + 
-    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
   
 data_by_weeks %>%
   filter(n == 7) %>%
   mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
   group_by(week_private) %>%
-  summarize(mos = mean(q2), f_lin_last = mean(f_lin_last)) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_last = mean(f_lin_last)) %>%
   ggscatter(x = "f_lin_last", y = "mos",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
    conf.int = TRUE # Add confidence interval
    ) + 
-    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 data_by_weeks %>%
   filter(n == 7) %>%
   mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
   group_by(week_private) %>%
-  summarize(mos = mean(q2), f_lin_first = mean(f_lin_first)) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_first = mean(f_lin_first)) %>%
   ggscatter(x = "f_lin_first", y = "mos",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
    conf.int = TRUE # Add confidence interval
    ) + 
-    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 data_by_weeks %>%
   filter(n == 7) %>%
   mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
   group_by(week_private) %>%
-  summarize(mos = mean(q2), f_lin_ends = mean(f_lin_ends)) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_ends = mean(f_lin_ends)) %>%
   ggscatter(x = "f_lin_ends", y = "mos",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
    conf.int = TRUE # Add confidence interval
    ) + 
-    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 data_by_weeks %>%
   select(-q4) %>%
   replace(is.na(.), 0) %>%
   mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
   group_by(week_private) %>%
-  summarize(mos = mean(q2), f_mean = mean(f_mean), n = n()) %>%
+  dplyr::summarize(mos = mean(q2), f_mean = mean(f_mean), n = n()) %>%
   ggscatter(x = "f_mean", y = "mos",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
    conf.int = TRUE # Add confidence interval
    ) + 
-    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 data_by_weeks %>%
   select(-q4) %>%
   replace(is.na(.), 0) %>%
   mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
   group_by(week_private) %>%
-  summarize(mos = mean(q2), f_lin_last = mean(f_lin_last), n = n()) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_last = mean(f_lin_last), n = n()) %>%
   ggscatter(x = "f_lin_last", y = "mos",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
    conf.int = TRUE # Add confidence interval
    ) + 
-    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 data_by_weeks %>%
   select(-q4) %>%
   replace(is.na(.), 0) %>%
   mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
   group_by(week_private) %>%
-  summarize(mos = mean(q2), f_lin_first = mean(f_lin_first), n = n()) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_first = mean(f_lin_first), n = n()) %>%
   ggscatter(x = "f_lin_first", y = "mos",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
    conf.int = TRUE # Add confidence interval
    ) + 
-    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 data_by_weeks %>%
   select(-q4) %>%
   replace(is.na(.), 0) %>%
   mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
   group_by(week_private) %>%
-  summarize(mos = mean(q2), f_lin_ends = mean(f_lin_ends), n = n()) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_ends = mean(f_lin_ends), n = n()) %>%
   ggscatter(x = "f_lin_ends", y = "mos",
    add = "reg.line",  # Add regressin line
    add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
    conf.int = TRUE # Add confidence interval
    ) + 
-    stat_cor(method = "pearson", label.x = 2.7, label.y = 4)
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+#and taking into account number of votes
+
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  dplyr::summarize(mos = mean(q2), f_mean = mean(f_mean), n = n(), week_private = week_private) %>%
+  ggscatter(x = "f_mean", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_last = mean(f_lin_last), n = n(), week_private = week_private) %>%
+  ggscatter(x = "f_lin_last", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_first = mean(f_lin_first), n = n(), week_private = week_private) %>%
+  ggscatter(x = "f_lin_first", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  dplyr::summarize(mos = mean(q2), f_lin_ends = mean(f_lin_ends), n = n(), week_private = week_private) %>%
+  ggscatter(x = "f_lin_ends", y = "mos",
+   add = "reg.line",  # Add regressin line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 
 

@@ -35,7 +35,7 @@ scores_ph4$Friday[scores_ph4$day == 5] <- scores_ph4$quality[scores_ph4$day == 5
 scores_ph4$Saturday[scores_ph4$day == 6] <- scores_ph4$quality[scores_ph4$day == 6]
 
 #delate the unfull week
-scores_ph4 <- scores_ph4[!grepl("13", scores_ph4$week),]
+scores_ph4 <- scores_ph4[!grepl("14", scores_ph4$week),]
 
 
 
