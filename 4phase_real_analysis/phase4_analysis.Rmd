@@ -9,6 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggpubr)
+library(ordinal)
 ```
 
 ## Reading data
@@ -335,8 +336,124 @@ data_by_weeks %>%
 ```
 
 
+## Take into Account GLZ
+
+The idea is to model the answer as an ordinal value. We try to predict the answer a a function of specific aggregation. The selected model is the one with the best information criteria. We can tray a mixed model as well, keeping in mind it can be misleading since all the values are strongly correlated.
+
+```{r glz}
+data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
+
+model_mean <- clm(os ~ f_mean, data = data_by_weeks, family = "binomial")
+summary(model_mean)
+
+model_lin_last <- clm(os ~ f_lin_last, data = data_by_weeks, family = "binomial")
+summary(model_lin_last)
+
+model_lin_first <- clm(os ~ f_lin_first, data = data_by_weeks, family = "binomial")
+summary(model_lin_first)
+
+model_lin_ends <- clm(os ~ f_lin_ends, data = data_by_weeks, family = "binomial")
+summary(model_lin_ends)
+
+model_lin_ends <- clm(os ~ f_mean + f_lin_last + f_lin_first + f_lin_ends, data = data_by_weeks, family = "binomial")
+summary(model_lin_ends)
+
+data_only_full <- data_by_weeks[data_by_weeks$n == 7,]
+
+model_mean <- clm(os ~ f_mean, data = data_only_full, family = "binomial")
+summary(model_mean)
+
+model_lin_last <- clm(os ~ f_lin_last, data = data_only_full, family = "binomial")
+summary(model_lin_last)
+
+model_lin_first <- clm(os ~ f_lin_first, data = data_only_full, family = "binomial")
+summary(model_lin_first)
+
+model_lin_ends <- clm(os ~ f_lin_ends, data = data_only_full, family = "binomial")
+summary(model_lin_ends)
+
+model_lin_ends <- clm(os ~ f_mean + f_lin_last + f_lin_first + f_lin_ends, data = data_only_full, family = "binomial")
+summary(model_lin_ends)
+```
+
+## Consider Parametric Function
+
+Let us think about Kumaraswa distribution as base for the weights. We cannot map Monday to 0 and Saturday to 1 since we can get infinity there, but using 0.01 and 0.99 looks ok.
+
+```{r parametric}
+library(optimx)
+
+kumaraswa_den <- function(x, a, b){
+  a * b * x^(a - 1) * (1 - x^a)^(b - 1)
+}
+
+f_param <- function(x, a, b) {
+  norm_vec <- t(replicate(nrow(x), kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), a, b)))
+  norm = norm_vec[,1]
+  norm[is.na(x[,1])] <- 0
+  tmp <- x[,1]
+  tmp[is.na(x[,1])] <- 0
+  tmp <- tmp * norm
+  for (i in c(2:6)){
+    tmp_norm <- norm_vec[,i]
+    tmp_norm[is.na(x[,i])] <- 0
+    norm <- norm + tmp_norm
+    tmp_na <- x[,i]
+    tmp_na[is.na(tmp_na)] <- 0
+    tmp <- tmp + tmp_na * tmp_norm
+  }
+  return(tmp / norm)
+}
+
+objective_fun <- function(params, df) {
+  a <- params[1]
+  b <- params[2]
+  
+  df$f_param <- f_param(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), a, b)
+  
+  model <- glm(os ~ f_param, data = df, family = "binomial")  
+  
+  return(AIC(model))  
+}
+
+init_params <- c(1.0, 1.0)
+lower_bounds <- c(0.001, 0.001)
+
+opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
+                     lower=lower_bounds, df = data_by_weeks)
+
+best_params <- opt_result
+print(best_params)
+
+plot(seq(0, 1, 0.01), kumaraswa_den(seq(0, 1, 0.01), best_params$p1, best_params$p2))
+
+data_by_weeks$f_param <- f_param(as.matrix(
+  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+  best_params$p1, best_params$p2)
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  dplyr::summarize(mos = mean(q2), f_param = mean(f_param), n = n(), week_private = week_private) %>%
+  ggscatter(x = "f_param", y = "mos",
+   add = "reg.line",  # Add regression line
+   add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+   conf.int = TRUE # Add confidence interval
+   ) + 
+    stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 
+```
 
 
+## GLZ for Days
 
+We can use days as predictors and see what kind of weights we are getting.
+
+```{r glz_days}
+model <- clm(os ~ mo  + we + sa, data = data_by_weeks)
+summary(model)
+
+```
