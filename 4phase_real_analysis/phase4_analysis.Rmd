@@ -416,7 +416,7 @@ objective_fun <- function(params, df) {
   return(AIC(model))  
 }
 
-init_params <- c(1.0, 1.0)
+init_params <- c(3.0, 3.0)
 lower_bounds <- c(0.001, 0.001)
 
 opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
