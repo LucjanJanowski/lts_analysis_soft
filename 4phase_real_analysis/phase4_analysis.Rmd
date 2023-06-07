@@ -382,6 +382,7 @@ Let us think about Kumaraswa distribution as base for the weights. We cannot map
 
 ```{r parametric}
 library(optimx)
+data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
 
 kumaraswa_den <- function(x, a, b){
   a * b * x^(a - 1) * (1 - x^a)^(b - 1)
@@ -409,23 +410,24 @@ objective_fun <- function(params, df) {
   a <- params[1]
   b <- params[2]
   
-  df$f_param <- f_param(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), a, b)
+  df$f_param <- f_param(as.matrix(df[,c("mo", "tu", "we", "th", "fr", "sa")]), a, b)
   
-  model <- glm(os ~ f_param, data = df, family = "binomial")  
+  model <- clm(os ~ f_param, data = df, family = "binomial")  
   
   return(AIC(model))  
 }
-
-init_params <- c(3.0, 3.0)
-lower_bounds <- c(0.001, 0.001)
+init_params <- c(0.2, 4)
+lower_bounds <- c(0.00001, 0.00001)
+opt_data <- data_by_weeks #%>%
+  filter(n == 7)
 
 opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                     lower=lower_bounds, df = data_by_weeks)
+                     lower=lower_bounds, df = opt_data)
 
 best_params <- opt_result
 print(best_params)
 
-plot(seq(0, 1, 0.01), kumaraswa_den(seq(0, 1, 0.01), best_params$p1, best_params$p2))
+plot(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), best_params$p1, best_params$p2)/sum(kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), best_params$p1, best_params$p2)))
 
 data_by_weeks$f_param <- f_param(as.matrix(
   data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
@@ -455,5 +457,32 @@ We can use days as predictors and see what kind of weights we are getting.
 ```{r glz_days}
 model <- clm(os ~ mo  + we + sa, data = data_by_weeks)
 summary(model)
+
+data_all_in <- data_by_weeks %>%
+  filter(n == 7) %>%
+  mutate(tu = tu + runif(n = 311, min = -0.3, max = 0.3)) %>%
+  mutate(th = th + runif(n = 311, min = -0.3, max = 0.3)) %>%
+  mutate(sa = sa + runif(n = 311, min = -0.3, max = 0.3)) 
+
+model <- clm(os ~ mo + tu + we + th + fr + sa, data = data_all_in)
+summary(model)
+
+cor(data_all_in$mo, data_all_in$tu)
+
+model_3var <- clm(os ~ tu + th + sa, data = data_all_in)
+summary(model_3var)
+AIC(model_3var)
+
+data_all_in$test_var <- data_all_in$tu*0.506 + data_all_in$th*0.789 + data_all_in$sa*0.810
+model_1var <- clm(os ~ test_var, data = data_all_in)
+summary(model_1var)
+AIC(model_1var)
+
+
+data_all_in$test_var <- data_all_in$tu*1.506 + data_all_in$th*0.289 + data_all_in$sa*0.310
+model_1var <- clm(os ~ test_var, data = data_all_in)
+summary(model_1var)
+AIC(model_1var)
+
 
 ```
