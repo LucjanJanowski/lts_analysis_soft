@@ -418,8 +418,8 @@ objective_fun <- function(params, df) {
 }
 init_params <- c(0.2, 4)
 lower_bounds <- c(0.00001, 0.00001)
-opt_data <- data_by_weeks #%>%
-  filter(n == 7)
+opt_data <- data_by_weeks %>%
+  filter(n < 8)
 
 opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                      lower=lower_bounds, df = opt_data)
