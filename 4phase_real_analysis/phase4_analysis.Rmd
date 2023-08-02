@@ -427,7 +427,7 @@ opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B",
 best_params <- opt_result
 print(best_params)
 
-plot(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), best_params$p1, best_params$p2)/sum(kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), best_params$p1, best_params$p2)))
+plot(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), best_params$p1, best_params$p2)/sum(kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), best_params$p1, best_params$p2)), ylim = c(0, 0.3))
 
 data_by_weeks$f_param <- f_param(as.matrix(
   data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
