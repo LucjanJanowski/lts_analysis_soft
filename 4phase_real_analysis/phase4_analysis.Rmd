@@ -446,6 +446,22 @@ data_by_weeks %>%
    ) + 
     stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
+#comparing real MOS with modelled MOS for Kumaraswa
+
+d_mos_k <- data_by_weeks %>%
+  group_by(week) %>% 
+    dplyr::summarize(n_votes = n(), mos_real = mean(q2, na.rm = TRUE), mos_k = mean(f_param, na.rm = TRUE), sd_real = sd(q2, na.rm = TRUE), sd_k = sd(f_param, na.rm = TRUE))
+
+#and comparison when we only have full weeks
+
+d_mos_full_k <- data_by_weeks %>% filter(n == 7)  %>% 
+  group_by(week) %>% 
+    dplyr::summarize(n_votes = n(), mos_real = mean(q2, na.rm = TRUE), mos_k = mean(f_param, na.rm = TRUE), sd_real = sd(q2, na.rm = TRUE), sd_k = sd(f_param, na.rm = TRUE))
+
+d_mos_full_k$diff <- d_mos_full_k$mos_real - d_mos_full_k$mos_k
+
+d_mos_full_k %>%
+  ggplot(aes(week, mos_real)) + geom_errorbar(aes(ymin = mos_real - 1.96*sd_real/sqrt(n_votes), ymax = mos_real + 1.96*sd_real/sqrt(n_votes))) + geom_point(aes(week, mos_k), color = 'blue')
 
 ```
 
@@ -483,6 +499,5 @@ data_all_in$test_var <- data_all_in$tu*1.506 + data_all_in$th*0.289 + data_all_i
 model_1var <- clm(os ~ test_var, data = data_all_in)
 summary(model_1var)
 AIC(model_1var)
-
 
 ```
