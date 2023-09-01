@@ -17,7 +17,7 @@ library(ordinal)
 Data are prepared by script `analysis_4ph.R`. Here we only read the data.
 
 ```{r cars}
-data_by_weeks <- read_csv("phase4_current_results.csv", col_types = "ffnnnnnnnnnnncc")
+data_by_weeks <- read_csv("phase4_current_results_p1204.csv", col_types = "ffnnnnnnnnnnncc")
 
 
 ```

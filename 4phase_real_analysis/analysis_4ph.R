@@ -107,4 +107,5 @@ content <- scores_ph4 %>% filter(!is.na(content_q)) %>%
   write.csv(n_watched_testers,"phase4_percantage_watched.csv", row.names = FALSE)
   write.csv(d_mos,"phase4_mos.csv", row.names = FALSE)
   write.csv(d_mos_full,"phase4_mos_onlyfullobs.csv", row.names = FALSE)
+  write.csv(scores_ph4,"data_for_plots.csv", row.names = FALSE)
   
