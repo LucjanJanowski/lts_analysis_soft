@@ -17,9 +17,18 @@ library(ordinal)
 Data are prepared by script `analysis_4ph.R`. Here we only read the data.
 
 ```{r cars}
-data_by_weeks <- read_csv("phase4_current_results_p1204.csv", col_types = "ffnnnnnnnnnnncc")
+data_by_weeks_1204 <- read_csv("phase4_current_results_p1204.csv", col_types = "ffnnnnnnnnnnncc")
 
+data_by_weeks <- read_csv("phase4_current_results.csv", col_types = "ffnnnnnnnnnnncc")
 
+```
+
+### Testing data
+
+```{r test_data}
+summary(data_by_weeks$mo)
+summary(data_by_weeks_1204$mo)
+data_by_weeks[!is.na(data_by_weeks$mo) & is.na(data_by_weeks_1204$mo),]
 ```
 
 ## Data visualization
@@ -388,8 +397,15 @@ kumaraswa_den <- function(x, a, b){
   a * b * x^(a - 1) * (1 - x^a)^(b - 1)
 }
 
+kumaraswa_cum <- function(x, a, b){
+  1 - (1 - x^a)^b
+}
+
+# steps <- c(0.1428571, 0.2857143, 0.4285714, 0.5714286, 0.7142857, 0.8571429)
+steps <- c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99)
+
 f_param <- function(x, a, b) {
-  norm_vec <- t(replicate(nrow(x), kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), a, b)))
+  norm_vec <- t(replicate(nrow(x), kumaraswa_den(steps, a, b)))
   norm = norm_vec[,1]
   norm[is.na(x[,1])] <- 0
   tmp <- x[,1]
@@ -427,7 +443,7 @@ opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B",
 best_params <- opt_result
 print(best_params)
 
-plot(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), best_params$p1, best_params$p2)/sum(kumaraswa_den(c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99), best_params$p1, best_params$p2)), ylim = c(0, 0.3))
+plot(steps, kumaraswa_den(steps, best_params$p1, best_params$p2)/sum(kumaraswa_den(steps, best_params$p1, best_params$p2)))
 
 data_by_weeks$f_param <- f_param(as.matrix(
   data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
