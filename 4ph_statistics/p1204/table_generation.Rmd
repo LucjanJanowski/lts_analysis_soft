@@ -1,0 +1,101 @@
+---
+title: "qualities_table"
+author: "NC"
+date: '2023-08-25'
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+library(kableExtra)
+library(tidyverse)
+library(purrr)
+library(ggplot2)
+library(gtools)
+library(tidyr)
+library(tidyverse)
+library(plyr)
+library(DT)
+library(webshot)
+library(xtable)
+table_data <- read_csv("p1204_table_4ph.csv")
+color_function <- function(value) {
+  if (value > 3.8) {
+    "background-color: green;"
+  } else if (value < 3.1) {
+    "background-color: red;"
+  } else {
+    ""
+  }
+}
+
+# Apply the color_cells function to the 'Value' column
+table_data$d1 <- sapply(table_data$d1, function(value) {
+  color <- color_function(value)
+  sprintf('<span style="%s">%s</span>', color, value)
+})
+table_data$d2 <- sapply(table_data$d2, function(value) {
+  color <- color_function(value)
+  sprintf('<span style="%s">%s</span>', color, value)
+})
+table_data$d3 <- sapply(table_data$d3, function(value) {
+  color <- color_function(value)
+  sprintf('<span style="%s">%s</span>', color, value)
+})
+table_data$d4 <- sapply(table_data$d4, function(value) {
+  color <- color_function(value)
+  sprintf('<span style="%s">%s</span>', color, value)
+})
+table_data$d5 <- sapply(table_data$d5, function(value) {
+  color <- color_function(value)
+  sprintf('<span style="%s">%s</span>', color, value)
+})
+table_data$d6 <- sapply(table_data$d6, function(value) {
+  color <- color_function(value)
+  sprintf('<span style="%s">%s</span>', color, value)
+})
+
+# Use the DT package to create an interactive table
+#datatable(data, escape = FALSE, options = list(autoWidth = TRUE))
+# Create a table using kable and add formatting
+styled_table <- kable(table_data, format = "html", escape = FALSE) %>%
+  kable_styling()
+
+
+# Display the table directly
+styled_table
+html_file <- "styled_table.html"
+writeLines(as.character(styled_table), con = html_file)
+png_file <- "styled_table.png"
+
+# Use webshot to capture the HTML table as a PNG image
+webshot(html_file, file = png_file)
+
+z <- kable(table_data, "latex", booktabs = TRUE)
+
+
+
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
