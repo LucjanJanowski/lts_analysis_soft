@@ -21,6 +21,9 @@ data_by_weeks_1204 <- read_csv("phase4_current_results_p1204.csv", col_types = "
 
 data_by_weeks <- read_csv("phase4_current_results.csv", col_types = "ffnnnnnnnnnnncc")
 
+x <- seq(0, 1, by=0.001)
+ggplot(NULL, aes(x, kumaraswa_den(x, 2, 200))) + geom_line()
+
 ```
 
 ### Testing data
@@ -28,7 +31,7 @@ data_by_weeks <- read_csv("phase4_current_results.csv", col_types = "ffnnnnnnnnn
 ```{r test_data}
 summary(data_by_weeks$mo)
 summary(data_by_weeks_1204$mo)
-data_by_weeks[!is.na(data_by_weeks$mo) & is.na(data_by_weeks_1204$mo),]
+data_by_weeks[!is.na(data_by_weeks$tu) & is.na(data_by_weeks_1204$tu),]
 ```
 
 ## Data visualization
@@ -390,6 +393,8 @@ summary(model_lin_ends)
 Let us think about Kumaraswa distribution as base for the weights. We cannot map Monday to 0 and Saturday to 1 since we can get infinity there, but using 0.01 and 0.99 looks ok.
 
 ```{r parametric}
+data_by_weeks <- data_by_weeks_1204
+
 library(optimx)
 data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
 
@@ -432,7 +437,7 @@ objective_fun <- function(params, df) {
   
   return(AIC(model))  
 }
-init_params <- c(0.2, 4)
+init_params <- c(1.0, 1.0)
 lower_bounds <- c(0.00001, 0.00001)
 opt_data <- data_by_weeks %>%
   filter(n < 8)
