@@ -25,6 +25,11 @@ df_p1204 <- read_csv("p1204_raw.csv")
 colnames(df_p1204)[which(names(df_p1204) == "score")] <- "quality"
 colnames(df_p1204)[which(names(df_p1204) == "video")] <- "videonm"
 
+#there is no video of number 36, so this part fixes the week division
+df_p1204$video_n[df_p1204$video_n >35] <-  df_p1204$video_n[df_p1204$video_n >35] - 1
+#there is no video of number 66, so this part fixes the week division
+df_p1204$video_n[df_p1204$video_n >65] <-  df_p1204$video_n[df_p1204$video_n >65] - 1
+
 scores_ph4 <- scores_ph %>%
   left_join(df_p1204, by = "video_n")
 scores_ph4 <- subset(scores_ph4, select=-c(videonm,q))
