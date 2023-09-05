@@ -6,21 +6,27 @@ library(optimx)
 # reading data ===================================
 setwd("./4phase_real_analysis/")
 data_by_weeks_1204 <- read_csv("phase4_current_results_p1204.csv", col_types = "ffnnnnnnnnnnncc")
-
 data_by_weeks <- read_csv("phase4_current_results.csv", col_types = "ffnnnnnnnnnnncc")
 
-# functions ============================
-kumaraswa_den <- function(x, a, b){
+# Different classes of weighting functions ============================
+kumaraswa_pdf <- function(x, a, b){
   a * b * x^(a - 1) * (1 - x^a)^(b - 1)
 }
 
-kumaraswa_cum <- function(x, a, b){
+kumaraswa_cdf <- function(x, a, b){
   1 - (1 - x^a)^b
 }
 
-x <- seq(0, 1, by=0.001)
-ggplot(NULL, aes(x, kumaraswa_den(x, 2, 200))) + geom_line()
+kumaraswa_rev_cdf <- function(x, a, b){
+  (1 - x^a)^b
+}
 
+x <- seq(0, 1, by=0.001)
+ggplot(NULL, aes(x, kumaraswa_pdf(x, 2, 200))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_cdf(x, 2, 2))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_rev_cdf(x, 0.5, 2))) + geom_line()
+
+# Modeling - simple mean ===========================
 f_mean <- function(x) {
   tmp <- x[,1]
   tmp[is.na(x[,1])] <- 0
@@ -51,6 +57,32 @@ data_by_weeks %>%
   geom_errorbar(aes(ymin = mos_real - 1.96*sd_real/sqrt(n_votes), 
                     ymax = mos_real + 1.96*sd_real/sqrt(n_votes))) + 
   geom_point(aes(week, mos_k), color = 'blue')
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>% 
+  dplyr::summarize(n_votes = n(), mos_real = mean(q2, na.rm = TRUE), 
+                   mos_k = mean(f_mean, na.rm = TRUE), 
+                   sd_real = sd(q2, na.rm = TRUE), 
+                   sd_k = sd(f_mean, na.rm = TRUE)) %>%
+  ggplot(aes(mos_k, mos_real)) + 
+  geom_errorbar(aes(ymin = mos_real - 1.96*sd_real/sqrt(n_votes), 
+                    ymax = mos_real + 1.96*sd_real/sqrt(n_votes)))
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>% 
+  dplyr::summarize(n_votes = n(), mos_real = mean(q2, na.rm = TRUE), 
+                   mos_k = mean(f_mean, na.rm = TRUE), 
+                   sd_real = sd(q2, na.rm = TRUE), 
+                   sd_k = sd(f_mean, na.rm = TRUE)) %>%
+  ggplot(aes(mos_k, mos_real, color = log10(n_votes))) + 
+  geom_point() +
+  geom_smooth(colour = "green", alpha = 0.1) +
+  geom_smooth(method = "lm") +
+  stat_cor()
 
 data_by_weeks_1204 %>%
   filter(n == 7) %>%
@@ -63,6 +95,32 @@ data_by_weeks_1204 %>%
   geom_errorbar(aes(ymin = mos_real - 1.96*sd_real/sqrt(n_votes), 
                     ymax = mos_real + 1.96*sd_real/sqrt(n_votes))) + 
   geom_point(aes(week, mos_k), color = 'blue')
+data_by_weeks_1204 %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>% 
+  dplyr::summarize(n_votes = n(), mos_real = mean(q2, na.rm = TRUE), 
+                   mos_k = mean(f_mean, na.rm = TRUE), 
+                   sd_real = sd(q2, na.rm = TRUE), 
+                   sd_k = sd(f_mean, na.rm = TRUE)) %>%
+  ggplot(aes(mos_k, mos_real)) + 
+  geom_errorbar(aes(ymin = mos_real - 1.96*sd_real/sqrt(n_votes), 
+                    ymax = mos_real + 1.96*sd_real/sqrt(n_votes)))
+data_by_weeks_1204 %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>% 
+  dplyr::summarize(n_votes = n(), mos_real = mean(q2, na.rm = TRUE), 
+                   mos_k = mean(f_mean, na.rm = TRUE), 
+                   sd_real = sd(q2, na.rm = TRUE), 
+                   sd_k = sd(f_mean, na.rm = TRUE)) %>%
+  ggplot(aes(mos_k, mos_real, color = log10(n_votes))) + 
+  geom_point() +
+  geom_smooth(colour = "green", alpha = 0.1) +
+  geom_smooth(method = "lm") +
+  stat_cor()
 
 
 
