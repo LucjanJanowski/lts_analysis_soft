@@ -241,7 +241,7 @@ for (i in 1:nrow(kum_par_pdf)){
   init_params <- kum_par_pdf[i,]
   lower_bounds <- c(0.00001, 0.00001)
   opt_data <- data_by_weeks %>%
-    filter(n < 8)
+    filter(n == 7)
   
   opt_result <- optimx(init_params, objective_fun_pdf, method="L-BFGS-B", 
                        lower=lower_bounds, df = opt_data, steps = steps)
@@ -259,7 +259,7 @@ for (i in 1:nrow(kum_par_pdf)){
   init_params <- kum_par_pdf[i,]
   lower_bounds <- c(0.00001, 0.00001)
   opt_data <- data_by_weeks %>%
-    filter(n < 8)
+    filter(n == 7)
   
   opt_result <- optimx(init_params, objective_fun_cdf, method="L-BFGS-B", 
                        lower=lower_bounds, df = opt_data, steps = steps)
@@ -277,7 +277,7 @@ for (i in 1:nrow(kum_par_pdf)){
   init_params <- kum_par_pdf[i,]
   lower_bounds <- c(0.00001, 0.00001)
   opt_data <- data_by_weeks %>%
-    filter(n < 8)
+    filter(n == 7)
   
   opt_result <- optimx(init_params, objective_fun_rev_cdf, method="L-BFGS-B", 
                        lower=lower_bounds, df = opt_data, steps = steps)
@@ -308,21 +308,17 @@ if (opt_shape == "pdf"){
 
 x = seq(0.001, 0.999, by = 0.001)
 if (opt_shape == "pdf"){
-  ggplot(NULL, aes(steps, kumaraswa_pdf(steps, opt_param$a, opt_param$b)/
-                     sum(kumaraswa_pdf(steps, opt_param$a, opt_param$b)))) + 
+  ggplot(NULL, aes(steps, kumaraswa_pdf(steps, opt_param$a, opt_param$b))) + 
         geom_point() +
-        geom_line(aes(x, kumaraswa_pdf(x, opt_param$a, opt_param$b)/
-                        sum(kumaraswa_pdf(x, opt_param$a, opt_param$b))))
+        geom_line(aes(x, kumaraswa_pdf(x, opt_param$a, opt_param$b)))
 } else if(opt_shape == "cdf") {
   ggplot(NULL, aes(steps, kumaraswa_cdf(steps, opt_param$a, opt_param$b))) + 
     geom_point() +
     geom_line(aes(x, kumaraswa_cdf(x, opt_param$a, opt_param$b)))
 } else {
-  ggplot(NULL, aes(steps, kumaraswa_rev_cdf(steps, opt_param$a, opt_param$b)/
-                     sum(kumaraswa_rev_cdf(steps, opt_param$a, opt_param$b)))) + 
+  ggplot(NULL, aes(steps, kumaraswa_rev_cdf(steps, opt_param$a, opt_param$b))) + 
     geom_point() +
-    geom_line(aes(x, kumaraswa_rev_cdf(x, opt_param$p1, opt_param$p2)/
-                    sum(kumaraswa_rev_cdf(x, opt_param$p1, opt_param$p2))))
+    geom_line(aes(x, kumaraswa_rev_cdf(x, opt_param$p1, opt_param$p2)))
 }
 
 data_by_weeks %>%
@@ -338,7 +334,21 @@ data_by_weeks %>%
   ) + 
   stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
-
+ggplot(NULL, aes(steps, kumaraswa_cdf(steps, opt_param$a, opt_param$b))) + 
+  geom_point() +
+  geom_line(aes(x, kumaraswa_cdf(x, opt_param$a, opt_param$b))) + 
+  geom_line(aes(x, kumaraswa_pdf(x, 1.166567, 0.8986457)/
+                  max(kumaraswa_pdf(x, 1.166567, 0.8986457)), color = "red")) +
+  geom_line(aes(x, kumaraswa_rev_cdf(x, 485.9165, 1e-05)/
+                  max(kumaraswa_rev_cdf(x, 485.9165, 1e-05))), color = "green")
+  
+ggplot(NULL, aes(steps, kumaraswa_cdf(steps, 0.1389325, 0.6026184))) + 
+  geom_point() +
+  geom_line(aes(x, kumaraswa_cdf(x, 0.1389325, 0.6026184))) + 
+  geom_line(aes(x, kumaraswa_pdf(x, 1.191867, 0.9646137)/
+                  max(kumaraswa_pdf(x, 1.191867, 0.9646137)), color = "red")) +
+  geom_line(aes(x, kumaraswa_rev_cdf(x, 519.4777, 1e-05)/
+                  max(kumaraswa_rev_cdf(x, 519.4777, 1e-05))), color = "green")
 
 
 # other fuctions ===========
