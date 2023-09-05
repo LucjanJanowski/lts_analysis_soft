@@ -3,6 +3,13 @@ library(ggpubr)
 library(ordinal)
 library(optimx)
 
+# ToDo
+# [x] Describe all initial parameters 
+# [] Use multiple parameter estimation
+# [] Generate all functions or aggregate them to smaller number of functions 
+# [] Add some final estimation, so the metric is not compared directly with MOS but some waited metric
+# [] Run the code for testing -> make it simple to run it both on assumptions and 1204
+
 # reading data ===================================
 setwd("./4phase_real_analysis/")
 data_by_weeks_1204 <- read_csv("phase4_current_results_p1204.csv", col_types = "ffnnnnnnnnnnncc")
@@ -12,19 +19,53 @@ data_by_weeks <- read_csv("phase4_current_results.csv", col_types = "ffnnnnnnnnn
 kumaraswa_pdf <- function(x, a, b){
   a * b * x^(a - 1) * (1 - x^a)^(b - 1)
 }
-
 kumaraswa_cdf <- function(x, a, b){
   1 - (1 - x^a)^b
 }
-
 kumaraswa_rev_cdf <- function(x, a, b){
   (1 - x^a)^b
 }
 
 x <- seq(0, 1, by=0.001)
-ggplot(NULL, aes(x, kumaraswa_pdf(x, 2, 200))) + geom_line()
-ggplot(NULL, aes(x, kumaraswa_cdf(x, 2, 2))) + geom_line()
-ggplot(NULL, aes(x, kumaraswa_rev_cdf(x, 0.5, 2))) + geom_line()
+kum_par_pdf <- c(1,1, 0.6,1, 0.9,1, 1,0.5, 5,0.9, 0.5,0.5, 0.9,0.9, 5,5, 3,6, 2,6)
+dim(kum_par_pdf) <- c(2, 10)
+kum_par_pdf <- t(kum_par_pdf)
+colnames(kum_par_pdf) <- c("a", "b")
+for (i in 1:nrow(kum_par_pdf)){
+  p <- ggplot(NULL, 
+              aes(x, kumaraswa_pdf(x, kum_par_pdf[i,"a"], kum_par_pdf[i, "b"]))) + 
+      geom_line() +
+      labs(x="x", y="kumarasawa pdf", 
+           title=sprintf("a:%.1f, b:%.1f", kum_par_pdf[i, "a"], kum_par_pdf[i, "b"]))
+  print(p)
+}
+
+kum_par_cdf <- c(1,1, 0.6,1, 0.9,1, 1,0.5, 5,0.9, 0.5,0.5, 0.9,0.9, 5,5, 3,6, 2,6)
+dim(kum_par_cdf) <- c(2, 10)
+kum_par_cdf <- t(kum_par_cdf)
+colnames(kum_par_cdf) <- c("a", "b")
+for (i in 1:nrow(kum_par_cdf)){
+  p <- ggplot(NULL, 
+              aes(x, kumaraswa_cdf(x, kum_par_cdf[i,"a"], kum_par_cdf[i, "b"]))) + 
+    geom_line() +
+    labs(x="x", y="kumarasawa cdf", 
+         title=sprintf("a:%.1f, b:%.1f", kum_par_pdf[i, "a"], kum_par_pdf[i, "b"]))
+  print(p)
+}
+
+ggplot(NULL, aes(x, kumaraswa_cdf(x, 1, 1))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_cdf(x, 1, 0.5))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_cdf(x, 0.5, 1))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_cdf(x, 3, 6))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_cdf(x, 0.4, 0.4))) + geom_line()
+
+ggplot(NULL, aes(x, kumaraswa_rev_cdf(x, 1, 1))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_rev_cdf(x, 1, 0.5))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_rev_cdf(x, 0.5, 1))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_rev_cdf(x, 3, 6))) + geom_line()
+ggplot(NULL, aes(x, kumaraswa_rev_cdf(x, 0.4, 0.4))) + geom_line()
+# I finally decided to use starting points from pdf for all cases, they are not perfec but ok
+
 
 # Modeling - simple mean ===========================
 f_mean <- function(x) {
@@ -83,6 +124,21 @@ data_by_weeks %>%
   geom_smooth(colour = "green", alpha = 0.1) +
   geom_smooth(method = "lm") +
   stat_cor()
+data_by_weeks %>%
+  filter(n == 7) %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>% 
+  dplyr::summarize(n_votes = n(), mos_real = mean(q2, na.rm = TRUE), 
+                   mos_k = mean(f_mean, na.rm = TRUE), 
+                   sd_real = sd(q2, na.rm = TRUE), 
+                   sd_k = sd(f_mean, na.rm = TRUE)) %>%
+  ggplot(aes(mos_k, mos_real, color = n_votes)) + 
+  geom_point() +
+  geom_smooth(colour = "green", alpha = 0.1) +
+  geom_smooth(method = "lm") +
+  stat_cor()
 
 data_by_weeks_1204 %>%
   filter(n == 7) %>%
@@ -122,8 +178,170 @@ data_by_weeks_1204 %>%
   geom_smooth(method = "lm") +
   stat_cor()
 
+# optimalization ======================
+data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
+                           levels = c(1, 2, 3, 4, 5))
+
+steps <- c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99)
+
+f_kum_pdf <- function(x, steps, a, b) {
+  norm_vec <- t(replicate(nrow(x), kumaraswa_pdf(steps, a, b)))
+  norm_vec[is.na(x)] <- 0
+  rowSums(x * norm_vec, na.rm = TRUE) / rowSums(norm_vec)
+}
+f_kum_cdf <- function(x, steps, a, b) {
+  norm_vec <- t(replicate(nrow(x), kumaraswa_cdf(steps, a, b)))
+  norm_vec[is.na(x)] <- 0
+  rowSums(x * norm_vec, na.rm = TRUE) / rowSums(norm_vec)
+}
+f_kum_rev_cdf <- function(x, steps, a, b) {
+  norm_vec <- t(replicate(nrow(x), kumaraswa_rev_cdf(steps, a, b)))
+  norm_vec[is.na(x)] <- 0
+  rowSums(x * norm_vec, na.rm = TRUE) / rowSums(norm_vec)
+}
+
+objective_fun_pdf <- function(params, df, steps) {
+  a <- params[1]
+  b <- params[2]
+  
+  df$f_kum_pdf <- f_kum_pdf(as.matrix(df[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+                        steps, a, b)
+  
+  model <- clm(os ~ f_kum_pdf, data = df, family = "binomial")  
+  
+  return(AIC(model))  
+}
+objective_fun_cdf <- function(params, df, steps) {
+  a <- params[1]
+  b <- params[2]
+  
+  df$f_kum_cdf <- f_kum_cdf(as.matrix(df[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+                            steps, a, b)
+  
+  model <- clm(os ~ f_kum_cdf, data = df, family = "binomial")  
+  
+  return(AIC(model))  
+}
+objective_fun_rev_cdf <- function(params, df, steps) {
+  a <- params[1]
+  b <- params[2]
+  
+  df$f_kum_rev_cdf <- f_kum_rev_cdf(as.matrix(df[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+                            steps, a, b)
+  
+  model <- clm(os ~ f_kum_rev_cdf, data = df, family = "binomial")  
+  
+  return(AIC(model))  
+}
+
+best_AIC <- 10^9
+opt_param <- 0
+opt_shape <- "none"
+for (i in 1:nrow(kum_par_pdf)){
+  init_params <- kum_par_pdf[i,]
+  lower_bounds <- c(0.00001, 0.00001)
+  opt_data <- data_by_weeks %>%
+    filter(n < 8)
+  
+  opt_result <- optimx(init_params, objective_fun_pdf, method="L-BFGS-B", 
+                       lower=lower_bounds, df = opt_data, steps = steps)
+  
+  best_params <- opt_result
+  print(best_params)
+  if (best_params$value < best_AIC)
+  {
+    best_AIC <- best_params$value
+    opt_param <- best_params
+    opt_shape <- "pdf"
+  }
+}
+for (i in 1:nrow(kum_par_pdf)){
+  init_params <- kum_par_pdf[i,]
+  lower_bounds <- c(0.00001, 0.00001)
+  opt_data <- data_by_weeks %>%
+    filter(n < 8)
+  
+  opt_result <- optimx(init_params, objective_fun_cdf, method="L-BFGS-B", 
+                       lower=lower_bounds, df = opt_data, steps = steps)
+  
+  best_params <- opt_result
+  print(best_params)
+  if (best_params$value < best_AIC)
+  {
+    best_AIC <- best_params$value
+    opt_param <- best_params
+    opt_shape <- "cdf"
+  }
+}
+for (i in 1:nrow(kum_par_pdf)){
+  init_params <- kum_par_pdf[i,]
+  lower_bounds <- c(0.00001, 0.00001)
+  opt_data <- data_by_weeks %>%
+    filter(n < 8)
+  
+  opt_result <- optimx(init_params, objective_fun_rev_cdf, method="L-BFGS-B", 
+                       lower=lower_bounds, df = opt_data, steps = steps)
+  
+  best_params <- opt_result
+  print(best_params)
+  if (best_params$value < best_AIC)
+  {
+    best_AIC <- best_params$value
+    opt_param <- best_params
+    opt_shape <- "rev_cdf"
+  }
+}
+
+if (opt_shape == "pdf"){
+  data_by_weeks$f_param <- f_kum_pdf(as.matrix(
+    data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+    steps, opt_param$a, opt_param$b)
+} else if(opt_shape == "cdf") {
+  data_by_weeks$f_param <- f_kum_cdf(as.matrix(
+    data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+    steps, opt_param$a, opt_param$b)
+} else {
+  data_by_weeks$f_param <- f_kum_rev_cdf(as.matrix(
+    data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+    steps, opt_param$a, opt_param$b)
+}
+
+x = seq(0.001, 0.999, by = 0.001)
+if (opt_shape == "pdf"){
+  ggplot(NULL, aes(steps, kumaraswa_pdf(steps, opt_param$a, opt_param$b)/
+                     sum(kumaraswa_pdf(steps, opt_param$a, opt_param$b)))) + 
+        geom_point() +
+        geom_line(aes(x, kumaraswa_pdf(x, opt_param$a, opt_param$b)/
+                        sum(kumaraswa_pdf(x, opt_param$a, opt_param$b))))
+} else if(opt_shape == "cdf") {
+  ggplot(NULL, aes(steps, kumaraswa_cdf(steps, opt_param$a, opt_param$b))) + 
+    geom_point() +
+    geom_line(aes(x, kumaraswa_cdf(x, opt_param$a, opt_param$b)))
+} else {
+  ggplot(NULL, aes(steps, kumaraswa_rev_cdf(steps, opt_param$a, opt_param$b)/
+                     sum(kumaraswa_rev_cdf(steps, opt_param$a, opt_param$b)))) + 
+    geom_point() +
+    geom_line(aes(x, kumaraswa_rev_cdf(x, opt_param$p1, opt_param$p2)/
+                    sum(kumaraswa_rev_cdf(x, opt_param$p1, opt_param$p2))))
+}
+
+data_by_weeks %>%
+  select(-q4) %>%
+  replace(is.na(.), 0) %>%
+  mutate(week_private = mo*10^5+tu*10^4+we*10^3+th*10^2+fr*10+sa) %>%
+  group_by(week_private) %>%
+  dplyr::summarize(mos = mean(q2), f_param = mean(f_param), n = n(), week_private = week_private) %>%
+  ggscatter(x = "f_param", y = "mos",
+            add = "reg.line",  # Add regression line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE # Add confidence interval
+  ) + 
+  stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
 
 
+
+
+# other fuctions ===========
 
 f_lin_last <- function(x) {
   norm <- rep(1, nrow(x))
@@ -176,9 +394,14 @@ f_lin_ends <- function(x) {
   return(tmp / norm)
 }
 
-
-
 # Modeling =========================
+
+
+
+
+
+
+
 
 
 data_by_weeks$f_lin_last = f_lin_last(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]))
