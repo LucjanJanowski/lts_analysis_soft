@@ -5,7 +5,7 @@ library(optimx)
 
 # ToDo
 # [x] Describe all initial parameters 
-# [] Use multiple parameter estimation
+# [x] Use multiple parameter estimation
 # [] Generate all functions or aggregate them to smaller number of functions 
 # [] Add some final estimation, so the metric is not compared directly with MOS but some waited metric
 # [] Run the code for testing -> make it simple to run it both on assumptions and 1204
