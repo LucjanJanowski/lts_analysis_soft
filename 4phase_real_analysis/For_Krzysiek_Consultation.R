@@ -2,11 +2,12 @@ library(tidyverse)
 library(ggpubr)
 library(ordinal)
 library(optimx)
+library(stats)
 
 # ToDo
 # [x] Describe all initial parameters 
 # [x] Use multiple parameter estimation
-# [] Generate all functions or aggregate them to smaller number of functions 
+# [x] Generate all functions or aggregate them to smaller number of functions 
 # [] Add some final estimation, so the metric is not compared directly with MOS but some waited metric
 # [] Run the code for testing -> make it simple to run it both on assumptions and 1204
 
@@ -190,7 +191,7 @@ f_kum <- function(x, steps, a, b, func) {
   rowSums(x * norm_vec, na.rm = TRUE) / rowSums(norm_vec)
 }
 
-objective_fun_pdf <- function(params, df, steps, func) {
+objective_fun <- function(params, df, steps, func) {
   a <- params[1]
   b <- params[2]
   
@@ -212,13 +213,14 @@ func_list <- list(
 )
 for (func_name in names(func_list)){
   func <- func_list[[func_name]]
+  print(func_name)
   for (i in 1:nrow(kum_par_pdf)){
     init_params <- kum_par_pdf[i,]
     lower_bounds <- c(0.00001, 0.00001)
     opt_data <- data_by_weeks %>%
       filter(n == 7)
     
-    opt_result <- optimx(init_params, objective_fun_pdf, method="L-BFGS-B", 
+    opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                          lower=lower_bounds, df = opt_data, steps = steps, 
                          func = func)
     
@@ -228,75 +230,78 @@ for (func_name in names(func_list)){
     {
       best_AIC <- best_params$value
       opt_param <- best_params
-      opt_shape <- func
+      opt_shape <- func_name
+      opt_func <- func
     }
   }
 }
-for (i in 1:nrow(kum_par_pdf)){
-  init_params <- kum_par_pdf[i,]
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks %>%
-    filter(n == 7)
-  
-  opt_result <- optimx(init_params, objective_fun_cdf, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-    opt_shape <- "cdf"
-  }
-}
-for (i in 1:nrow(kum_par_pdf)){
-  init_params <- kum_par_pdf[i,]
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks %>%
-    filter(n == 7)
-  
-  opt_result <- optimx(init_params, objective_fun_rev_cdf, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-    opt_shape <- "rev_cdf"
-  }
-}
 
-if (opt_shape == "pdf"){
-  data_by_weeks$f_param <- f_kum_pdf(as.matrix(
-    data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-    steps, opt_param$a, opt_param$b)
-} else if(opt_shape == "cdf") {
-  data_by_weeks$f_param <- f_kum_cdf(as.matrix(
-    data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-    steps, opt_param$a, opt_param$b)
-} else {
-  data_by_weeks$f_param <- f_kum_rev_cdf(as.matrix(
-    data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-    steps, opt_param$a, opt_param$b)
-}
+data_by_weeks$f_best_fun <- f_kum(as.matrix(
+  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+  steps, opt_param$a, opt_param$b, opt_func)
 
 x = seq(0.001, 0.999, by = 0.001)
-if (opt_shape == "pdf"){
-  ggplot(NULL, aes(steps, kumaraswamy_pdf(steps, opt_param$a, opt_param$b))) + 
-        geom_point() +
-        geom_line(aes(x, kumaraswamy_pdf(x, opt_param$a, opt_param$b)))
-} else if(opt_shape == "cdf") {
-  ggplot(NULL, aes(steps, kumaraswamy_cdf(steps, opt_param$a, opt_param$b))) + 
+ggplot(NULL, aes(steps, opt_func(steps, opt_param$a, opt_param$b))) + 
+  geom_point() +
+  geom_line(aes(x, opt_func(x, opt_param$a, opt_param$b)))
+
+model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
+summary(model)
+model2 <- clm(os ~ f_mean, data = data_by_weeks, family = "binomial")
+summary(model2)
+
+data_by_weeks %>%
+  filter(n == 7) %>%
+  group_by(week) %>%
+  dplyr::summarize(mos = mean(q2), f_best_fun = mean(f_best_fun), n = n()) %>%
+  ggscatter(x = "f_best_fun", y = "mos",
+            add = "reg.line",  # Add regression line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE # Add confidence interval
+  ) + 
+  stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+data_by_weeks %>%
+  filter(n == 7) %>%
+  group_by(week) %>%
+  dplyr::summarize(mos = mean(q2), f_mean = mean(f_mean), n = n()) %>%
+  ggscatter(x = "f_mean", y = "mos",
+            add = "reg.line",  # Add regression line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE # Add confidence interval
+  ) + 
+  stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+data_plot <- data_by_weeks %>%
+  mutate(metric_cat = floor(10*(f_best_fun - 1))) %>%
+  group_by(metric_cat) %>%
+  dplyr::summarize(mos = mean(q2), f_best_fun = mean(f_best_fun), n = n())
+correlation_value <- cov.wt(data_plot[,c("f_best_fun", "mos")], 
+                            wt = data_plot$n, cor = TRUE)$cor[1,2]
+data_plot %>%
+  ggplot(aes(f_best_fun, mos, color = n)) + 
     geom_point() +
-    geom_line(aes(x, kumaraswamy_cdf(x, opt_param$a, opt_param$b)))
-} else {
-  ggplot(NULL, aes(steps, kumaraswamy_rev_cdf(steps, opt_param$a, opt_param$b))) + 
-    geom_point() +
-    geom_line(aes(x, kumaraswamy_rev_cdf(x, opt_param$p1, opt_param$p2)))
-}
+    geom_smooth(method = "lm", mapping = aes(weight = n)) + 
+    annotate("text", x = 2.5, y = 4.5, 
+           label = paste("R = ", round(correlation_value, 3)), 
+           hjust = 1, vjust = 1, size = 5, 
+           color = "blue")
+
+data_plot <- data_by_weeks %>%
+  mutate(metric_cat = floor(10*(f_mean - 1))) %>%
+  group_by(metric_cat) %>%
+  dplyr::summarize(mos = mean(q2), f_mean = mean(f_mean), n = n())
+correlation_value <- cov.wt(data_plot[,c("f_mean", "mos")], 
+                            wt = data_plot$n, cor = TRUE)$cor[1,2]
+data_plot %>%
+  ggplot(aes(f_mean, mos, color = n)) + 
+  geom_point() +
+  geom_smooth(method = "lm", mapping = aes(weight = n)) + 
+  annotate("text", x = 2.5, y = 4.5, 
+           label = paste("R = ", round(correlation_value, 3)), 
+           hjust = 1, vjust = 1, size = 5, 
+           color = "blue")
+
 
 data_by_weeks %>%
   select(-q4) %>%
