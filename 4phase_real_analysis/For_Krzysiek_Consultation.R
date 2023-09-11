@@ -12,7 +12,7 @@ library(stats)
 # [] Run the code for testing -> make it simple to run it both on assumptions and 1204
 
 # reading data ===================================
-# setwd("./4phase_real_analysis/")
+setwd("./4phase_real_analysis/")
 data_by_weeks_1204 <- read_csv("phase4_current_results_p1204.csv", col_types = "ffnnnnnnnnnnncc")
 data_by_weeks <- read_csv("phase4_current_results.csv", col_types = "ffnnnnnnnnnnncc")
 
@@ -218,7 +218,7 @@ for (func_name in names(func_list)){
     init_params <- kum_par_pdf[i,]
     lower_bounds <- c(0.00001, 0.00001)
     opt_data <- data_by_weeks %>%
-      filter(n == 7)
+      filter(n < 8)
     
     opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                          lower=lower_bounds, df = opt_data, steps = steps, 
@@ -315,6 +315,8 @@ data_by_weeks %>%
             conf.int = TRUE # Add confidence interval
   ) + 
   stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+# old visualizations =============
 
 ggplot(NULL, aes(steps, kumaraswamy_cdf(steps, opt_param$a, opt_param$b))) + 
   geom_point() +
