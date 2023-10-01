@@ -42,9 +42,11 @@ ggplot(data_raw, aes(x = external_id, fill = TimeOfDay)) +
 
 ```{r watching_times, echo=FALSE}
 df <- read_csv("data_for_plots.csv")
-df$hour <- format(as.POSIXct(df$date), format = "%H")
-df$hour <- as.integer(df$hour)
-
+df$hour <- format(as.POSIXct(df$date), format = "%H:%M")
+df$hour <- gsub(":", ".", df$hour)
+df$hour <- as.numeric(df$hour)
+df$hour <- round(df$hour, digits = 0)
+df$hour[df$hour == 0] <- 24
 heatmap_data <- df %>%
   group_by(external_id, hour) %>%
   dplyr::summarize(Frequency = n())
@@ -62,8 +64,8 @@ ggplot(heatmap_data, aes(x = external_id, y = hour, fill = Frequency)) +
     y = "Hour of the Day",
     title = "Watching time heatmap"
   ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.5)) +  scale_y_continuous(breaks = seq(0, 24, 2))
 ```
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
@@ -93,8 +95,8 @@ ggplot(heatmap_data, aes(x = external_id, y = q2, fill = Frequency)) +
     y = "Score",
     title = "Scores distribution heatmap"
   ) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=0.5))
 
 
 ```
@@ -120,25 +122,36 @@ mean_correlation_per_user <- df_with_mean %>%
   group_by(external_id) %>%
   dplyr::summarize(mean_correlation = cor(q2, mean_score, use = "complete.obs"))
 
-sum_watched_videos <- df_s %>%
-  group_by(external_id) %>%
-  dplyr::summarize(total_watched_videos = sum(n))
+#this is to get percentage of watched videos (there were 175 videos in total)
 
-df_for_plot <- sum_watched_videos %>%
+#sum_watched_videos <- df_s %>%
+  #group_by(external_id) %>%
+  #dplyr::summarize(total_watched_videos = sum(n))
+
+#df_for_plot <- sum_watched_videos %>%
+  #left_join(mean_correlation_per_user, by = "external_id")
+
+#df_for_plot$perc <- df_for_plot$total_watched_videos/1.75 
+
+#this is to get number of fully watched weeks
+sum_watched_weeks <- filtered_df %>%
+  group_by(external_id) %>%
+  dplyr::summarize(total_watched_weeks = sum(n))
+
+df_for_plot <- sum_watched_weeks %>%
   left_join(mean_correlation_per_user, by = "external_id")
 
-#this is to get percentage of watched videos (there were 175 videos in total)
-df_for_plot$perc <- df_for_plot$total_watched_videos/1.75 
+df_for_plot$weeks <- df_for_plot$total_watched_weeks/7 
 
 my_color_palette <- colorRampPalette(brewer.pal(9, "Blues"))(n = 100)
 
-ggplot(df_for_plot, aes(x = external_id, y = mean_correlation, color = perc)) +
+ggplot(df_for_plot, aes(x = external_id, y = mean_correlation, color = weeks)) +
   geom_point() +
   scale_color_gradientn(colors = my_color_palette) +
-  labs(x = "User ID", y = "Correlation", title = "Correlation and percentage of watched videos per tester") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1), aspect.ratio = 0.5) +
-  guides(color = guide_colorbar(title = "Percentage \n of Watched \n Videos", title.position = "top", title.hjust = 0.5, title.vjust = 1, wrap = TRUE))
+  labs(x = "User ID", y = "Correlation", title = "Correlation and number of fully watched weeks") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 0.5, vjust=0.5), aspect.ratio = 0.5) +
+  guides(color = guide_colorbar(title = "Number of fully \n watched weeks", title.position = "top", title.hjust = 0.5, title.vjust = 0.5, wrap = TRUE))
 
 ```
 

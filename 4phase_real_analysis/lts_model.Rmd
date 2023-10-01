@@ -1,0 +1,235 @@
+---
+title: "lts_model"
+author: "NC"
+date: '2023-10-01'
+output: html_document
+---
+
+```{r setup}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+library(tidyverse)
+library(ggpubr)
+library(ordinal)
+library(optimx)
+library(stats)
+```
+
+# Loading csv
+```{r file}
+#Here choose the csv, it can be with real p1204 or desired only
+all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "ffnnnnnnnnnnncc")
+#Here choose for which data you want the model: 
+#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
+data_by_weeks_n <- all_data  %>% filter(n < 8)
+#Here choose what content you want: 
+#n < 26 for all content, n < 14 for nature only and n > 13 for slowmo only
+data_by_weeks <- data_by_weeks_n %>% filter(n < 14)
+#if you want to exclude some testers you can do this after this line
+```
+
+# Defining functions
+
+```{r functions}
+# Different classes of weighting functions ============================
+kumaraswamy_pdf <- function(x, a, b){
+  a * b * x^(a - 1) * (1 - x^a)^(b - 1)
+}
+kumaraswamy_cdf <- function(x, a, b){
+  1 - (1 - x^a)^b
+}
+kumaraswamy_rev_cdf <- function(x, a, b){
+  (1 - x^a)^b
+}
+
+# Define the normalized PDF
+pdf_normalized <- function(x, a, b) {
+  return(kumaraswamy_pdf(x, a, b) / integrate(kumaraswamy_pdf, lower = 0, upper = 1, a = a, b = b)$value)
+}
+
+# Define the normalized CDF
+cdf_normalized <- function(x, a, b) {
+  return(kumaraswamy_cdf(x, a, b) / integrate(kumaraswamy_cdf, lower = 0, upper = 1, a = a, b = b)$value)
+}
+
+# Define the normalized REV-CDF
+rev_cdf_normalized <- function(x, a, b) {
+  return(kumaraswamy_rev_cdf(x, a, b) / integrate(kumaraswamy_rev_cdf, lower = 0, upper = 1, a = a, b = b)$value)
+}
+
+kum_par_pdf <- c(1,1, 0.6,1, 0.9,1, 1,0.5, 5,0.9, 0.5,0.5, 0.9,0.9, 5,5, 3,6, 2,6)
+dim(kum_par_pdf) <- c(2, 10)
+kum_par_pdf <- t(kum_par_pdf)
+colnames(kum_par_pdf) <- c("a", "b")
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+#Mean model
+
+```{r mean mean}
+f_mean <- function(x) {
+  tmp <- x[,1]
+  tmp[is.na(x[,1])] <- 0
+  norm <- rep(1, nrow(x))
+  norm[is.na(x[,1])] <- 0
+  for (i in c(2:6)){
+    tmp_norm <- rep(1, nrow(x))
+    tmp_norm[is.na(x[,i])] <- 0
+    norm <- norm + tmp_norm
+    tmp_na <- x[,i]
+    tmp_na[is.na(tmp_na)] <- 0
+    tmp <- tmp + tmp_na
+  }
+  return(tmp / norm)
+}
+
+data_by_weeks$f_mean = f_mean(as.matrix(data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]))
+```
+
+#Building the GLZ model
+
+```{r GLZ, echo=FALSE}
+data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
+                           levels = c(1, 2, 3, 4, 5))
+
+steps <- c(0.01, 0.2, 0.4, 0.6, 0.8, 0.99)
+
+f_kum <- function(x, steps, a, b, func) {
+  norm_vec <- t(replicate(nrow(x), func(steps, a, b)))
+  norm_vec[is.na(x)] <- 0
+  rowSums(x * norm_vec, na.rm = TRUE) / rowSums(norm_vec)
+}
+
+objective_fun <- function(params, df, steps, func) {
+  a <- params[1]
+  b <- params[2]
+  
+  df$tmp <- f_kum(as.matrix(df[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+                        steps, a, b, func)
+  
+  model <- clm(os ~ tmp, data = df, family = "binomial")  
+  
+  return(AIC(model))  
+}
+
+best_AIC <- 10^9
+opt_param <- 0
+opt_shape <- "none"
+func_list <- list(
+  pdf_normalized = pdf_normalized,
+  cdf_normalized = cdf_normalized,
+  rev_cdf_normalized = rev_cdf_normalized
+)
+for (func_name in names(func_list)){
+  func <- func_list[[func_name]]
+  print(func_name)
+  for (i in 1:nrow(kum_par_pdf)){
+    init_params <- kum_par_pdf[i,]
+    lower_bounds <- c(0.00001, 0.00001)
+    opt_data <- data_by_weeks 
+    
+    opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
+                         lower=lower_bounds, df = opt_data, steps = steps, 
+                         func = func)
+    
+    best_params <- opt_result
+    print(best_params)
+    if (best_params$value < best_AIC)
+    {
+      best_AIC <- best_params$value
+      opt_param <- best_params
+      opt_shape <- func_name
+      opt_func <- func
+    }
+  }
+}
+
+data_by_weeks$f_best_fun <- f_kum(as.matrix(
+  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+  steps, opt_param$a, opt_param$b, opt_func)
+
+
+```
+
+#Plotting
+
+```{r plots}
+x = seq(0.001, 0.999, by = 0.001)
+#x = seq(from = steps[1], to = steps[6], by = 0.001)
+try_1 <- opt_func(steps, opt_param$a, opt_param$b)
+try_2 <- opt_func(x, opt_param$a, opt_param$b)
+normalize_min_max <- function(xt) {
+   (xt - min(xt)) / (max(xt) - min(xt))
+}
+t_try_1 <- scale(try_1, center = FALSE)
+t_try_2 <- scale(try_2, center = FALSE)
+ggplot(NULL, aes(steps, try_1)) + 
+  geom_point() +
+  geom_line(aes(x, try_2))
+
+
+print(try_1)
+test_v <- (try_1[1] * 5 + try_1[2] * 5 + try_1[3] * 2 + try_1[4] * 2 + try_1[5] * 5 + try_1[6] * 5)/(sum(try_1))
+model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
+summary(model)
+model2 <- clm(os ~ f_mean, data = data_by_weeks, family = "binomial")
+summary(model2)
+
+data_by_weeks %>%
+  group_by(week) %>%
+  dplyr::summarize(mos = mean(q2), f_best_fun = mean(f_best_fun), n = n()) %>%
+  ggscatter(x = "f_best_fun", y = "mos",
+            add = "reg.line",  # Add regression line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE # Add confidence interval
+  ) + 
+  stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+data_by_weeks %>%
+  group_by(week) %>%
+  dplyr::summarize(mos = mean(q2), f_mean = mean(f_mean), n = n()) %>%
+  ggscatter(x = "f_mean", y = "mos",
+            add = "reg.line",  # Add regression line
+            add.params = list(color = "blue", fill = "lightgray"), # Customize reg. line
+            conf.int = TRUE # Add confidence interval
+  ) + 
+  stat_cor(method = "pearson", label.x = 2.5, label.y = 5)
+
+data_plot <- data_by_weeks %>% 
+  mutate(metric_cat = floor(10*(f_best_fun - 1))) %>%
+  group_by(metric_cat) %>%
+  dplyr::summarize(mos = mean(q2), f_best_fun = mean(f_best_fun), n = n())
+correlation_value <- cov.wt(data_plot[,c("f_best_fun", "mos")], 
+                            wt = data_plot$n, cor = TRUE)$cor[1,2]
+data_plot %>%
+  ggplot(aes(f_best_fun, mos, color = n)) + 
+    geom_point() +
+    geom_smooth(method = "lm", mapping = aes(weight = n)) + 
+    annotate("text", x = 2.5, y = 4.5, 
+           label = paste("R = ", round(correlation_value, 3)), 
+           hjust = 1, vjust = 1, size = 5, 
+           color = "blue")
+
+data_plot <- data_by_weeks %>% 
+  mutate(metric_cat = floor(10*(f_mean - 1))) %>%
+  group_by(metric_cat) %>%
+  dplyr::summarize(mos = mean(q2), f_mean = mean(f_mean), n = n())
+correlation_value <- cov.wt(data_plot[,c("f_mean", "mos")], 
+                            wt = data_plot$n, cor = TRUE)$cor[1,2]
+data_plot %>%
+  ggplot(aes(f_mean, mos, color = n)) + 
+  geom_point() +
+  geom_smooth(method = "lm", mapping = aes(weight = n)) + 
+  annotate("text", x = 2.5, y = 4.5, 
+           label = paste("R = ", round(correlation_value, 3)), 
+           hjust = 1, vjust = 1, size = 5, 
+           color = "blue")
+```
+
+# Plots for GLZ visualization
+
+```{r trying to better visualize glz}
+
+
+```
