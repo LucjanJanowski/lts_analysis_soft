@@ -20,10 +20,10 @@ library(stats)
 all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "ffnnnnnnnnnnncc")
 #Here choose for which data you want the model: 
 #n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n < 8)
+data_by_weeks_n <- all_data  %>% filter(n == 7)
 #Here choose what content you want: 
 #n < 26 for all content, n < 14 for nature only and n > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(n < 14)
+data_by_weeks <- data_by_weeks_n %>% filter(n < 26)
 #if you want to exclude some testers you can do this after this line
 ```
 
@@ -225,6 +225,27 @@ data_plot %>%
            label = paste("R = ", round(correlation_value, 3)), 
            hjust = 1, vjust = 1, size = 5, 
            color = "blue")
+```
+
+# GLZ
+
+```{r glz}
+glz_data <- all_data %>%
+  filter(n == 7)
+glz_data$os <- factor(glz_data$q2, ordered = TRUE,levels = c(1, 2, 3, 4, 5))
+model <- clm(os ~ mo + tu + we + th + fr + sa, data = glz_data, family = "binomial")  
+AIC(model)
+summary(model)
+
+glz_data %<>%
+  mutate(motu = (mo + tu)/2) %>%
+  mutate(weth = (we + th)/2) %>%
+  mutate(frsa = (fr + sa)/2)
+model <- clm(os ~ motu + weth + frsa, data = glz_data, family = "binomial")  
+AIC(model)
+summary(model)
+
+
 ```
 
 # Plots for GLZ visualization
