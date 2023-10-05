@@ -106,7 +106,7 @@ predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
 predicted_probs_matrix <- do.call(rbind, predicted_probs)
 
 # Pre-allocate a matrix to store the samples
-N <- 1000
+N <- 100
 random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
 
 # Draw random levels based on predicted probabilities for each observation
@@ -138,6 +138,7 @@ bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,
 ggplot(bootstrap_data, aes(step, weight)) + geom_point(alpha = 0.1)
 
 bootstrap_data$get_in <- 1
+# this piece is wrong, we need to remove max and min for each step until we get less than 95% of all samples
 bootstrap_data %<>%
   filter(get_in == 1) %>%
   group_by(step) %>%
