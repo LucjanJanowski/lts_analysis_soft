@@ -114,13 +114,19 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)
 
@@ -194,13 +200,19 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)
 
@@ -275,13 +287,19 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)
 
@@ -356,13 +374,19 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)
 
@@ -437,13 +461,19 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)
 
@@ -518,13 +548,19 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)
 
@@ -599,13 +635,19 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)
 
@@ -680,13 +722,19 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)
 
@@ -761,12 +809,18 @@ for(i in 1:ncol(random_samples_matrix)) {
   lower_bounds <- c(0.00001, 0.00001)
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
-  # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  # done protect against estimation error (może if $kkt1 to proceed)
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA }
 }
-
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 saveRDS(bootstrap_data, file_name)

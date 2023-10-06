@@ -128,17 +128,27 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-  points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-}
+  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
+    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
+  }
+  else {
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA
+    
+  }
 
+}
+points_bootstrap <- na.omit(points_bootstrap)
 bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
 ggplot(bootstrap_data, aes(step, weight)) + geom_point(alpha = 0.1)
 
 bootstrap_data$get_in <- 1
 # this piece is wrong, we need to remove max and min for each step until we get less than 95% of all samples
+# czyli tutaj trzeba zrobić to samo ale tylko dla stepów o tej samej wartosci
 bootstrap_data %<>%
   filter(get_in == 1) %>%
   group_by(step) %>%
