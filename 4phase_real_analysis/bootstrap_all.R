@@ -43,7 +43,7 @@ objective_fun <- function(params, df, steps) {
   return(AIC(model))  
 }
 
-N <- 10
+N <- 10000
 
 # specific data set ========= 1 ===========
 
@@ -115,7 +115,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -195,7 +195,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -276,7 +276,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -357,7 +357,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -438,7 +438,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -519,7 +519,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -600,7 +600,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -681,7 +681,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -762,7 +762,7 @@ for(i in 1:ncol(random_samples_matrix)) {
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = tmp_data, steps = steps)
   # TODO protect against estimation error
-  print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
   points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
