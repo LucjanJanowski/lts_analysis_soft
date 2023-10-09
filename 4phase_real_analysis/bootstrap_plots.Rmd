@@ -1,0 +1,73 @@
+---
+title: "different plots"
+author: "NC"
+date: '2023-10-07'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r cars}
+#load each file as seperate rds
+df_s <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(df_s) <- c('rep', 'step', 'weight', 'name')
+temp = list.files(pattern="*.rds")
+var = length(temp)
+for (y in 1:var) {
+  fname <- temp[y]
+   name <- paste0("df_", fname) ## getting a new name ready
+   x <- readRDS(fname) ## reading in the file
+   x$name <- fname
+   assign(name, x) ## assigning the data the name we created two lines up
+   df_s <- rbind(df_s, x) 
+   pl <- ggplot(x, aes(x = step, y = weight, color = name)) + geom_point(alpha = 0.1)
+   print(pl)
+   
+}
+
+df_nature <- df_s %>% filter(str_detect(name, "less_14"))
+
+df_slowmo <-  df_s %>% filter(str_detect(name, "more_13"))
+
+df_all <-  df_s %>% filter(str_detect(name, "less_26"))
+
+
+
+```
+
+## Including Plots
+
+
+```{r pressure, fig.show='asis'}
+# List of data frames
+df_list <- list(df_nature, df_slowmo, df_all)
+
+# Names of data frames
+df_names <- c("nature", "slowmo", "all")
+
+for (i in seq_along(df_list)) {
+  # Create the ggplot plot for the current data frame
+  current_df <- df_list[[i]]
+  current_name <- df_names[i]
+  
+  z <- ggplot(current_df, aes(x = step, y = weight, color = name)) + geom_point(alpha = 0.1) 
+
+  summarized_data <- current_df %>%
+    group_by(name, step) %>%
+    summarise(mean_weight = mean(weight))
+
+  p <- ggplot(summarized_data, aes(x = step, y = mean_weight, color = name)) + geom_point(alpha = 0.8) 
+  ggsave(filename = paste("plot_", current_name, ".png", sep = ""), plot = p, width = 8, height = 4)
+  ggsave(filename = paste("scattered_", current_name, ".png", sep = ""), plot = z, width = 8, height = 4)
+  print(p)
+}
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
