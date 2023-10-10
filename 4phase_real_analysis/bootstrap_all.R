@@ -117,8 +117,8 @@ for(i in 1:ncol(random_samples_matrix)) {
 
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -206,8 +206,8 @@ for(i in 1:ncol(random_samples_matrix)) {
 
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -296,8 +296,8 @@ for(i in 1:ncol(random_samples_matrix)) {
 
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -386,8 +386,8 @@ for(i in 1:ncol(random_samples_matrix)) {
 
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -476,8 +476,8 @@ for(i in 1:ncol(random_samples_matrix)) {
 
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -566,8 +566,8 @@ for(i in 1:ncol(random_samples_matrix)) {
 
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -655,8 +655,8 @@ for(i in 1:ncol(random_samples_matrix)) {
                        lower=lower_bounds, df = tmp_data, steps = steps)
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -744,8 +744,8 @@ for(i in 1:ncol(random_samples_matrix)) {
                        lower=lower_bounds, df = tmp_data, steps = steps)
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
@@ -833,8 +833,8 @@ for(i in 1:ncol(random_samples_matrix)) {
                        lower=lower_bounds, df = tmp_data, steps = steps)
   cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error (może if $kkt1 to proceed)
-  if (opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
-    print(kumaraswamy_weights(steps, opt_result$a, opt_result$b))
+  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+ 
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
     points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
