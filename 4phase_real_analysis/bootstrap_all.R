@@ -45,23 +45,58 @@ objective_fun <- function(params, df, steps) {
 
 N <- 10000
 
-# specific data set ========= 1 ===========
+# specify conditions =======================================================
 
-#Here choose the csv, it can be with real p1204 or desired only
 all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n < 8)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week < 26)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_less_8_week_less_26.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
+clean_data <- all_data[!(all_data$external_id %in% c("f1308", "bb8d0", "343ab", "9d7d1", "3fe63", "57ea9")), ]
 
-best_AIC <- 10^9
-opt_param <- 0
+conditions <- list(
+  all = list(all_data$n < 8, all_data$week < 26),
+  is7 = list(all_data$n == 7, all_data$week < 26),
+  less7 = list(all_data$n < 7, all_data$week < 26),
+  all_nat = list(all_data$n < 8, all_data$week < 14),
+  is7_nat = list(all_data$n == 7, all_data$week < 14),
+  less7_nat = list(all_data$n < 7, all_data$week < 14),
+  all_slow = list(all_data$n < 8, all_data$week > 13),
+  is7_slow = list(all_data$n == 7, all_data$week > 13),
+  less7_slow = list(all_data$n < 7, all_data$week > 13)
+)
+
+# Create DataFrames using a loop
+data_frames <- list()
+for (condition_name in names(conditions)) {
+  condition <- conditions[[condition_name]]
+  data_frames[[condition_name]] <- all_data %>% filter(!!!condition)
+}
+
+conditions_clean <- list(
+  clean_all = list(clean_data$n < 8, clean_data$week < 26),
+  clean_is7 = list(clean_data$n == 7, clean_data$week < 26),
+  clean_less7 = list(clean_data$n < 7, clean_data$week < 26),
+  clean_all_nat = list(clean_data$n < 8, clean_data$week < 14),
+  clean_is7_nat = list(clean_data$n == 7, clean_data$week < 14),
+  clean_less7_nat = list(clean_data$n < 7, clean_data$week < 14),
+  clean_all_slow = list(clean_data$n < 8, clean_data$week > 13),
+  clean_is7_slow = list(clean_data$n == 7, clean_data$week > 13),
+  clean_less7_slow = list(clean_data$n < 7, clean_data$week > 13)
+  )
+
+clean_data_frames <- list()
+for (condition_name in names(conditions_clean)) {
+  condition <- conditions_clean[[condition_name]]
+  clean_data_frames[[condition_name]] <- clean_data %>% filter(!!!condition)
+}
+
+all_data_frames <- c(data_frames, clean_data_frames)
+df_names <- names(all_data_frames)
+
+for (i in seq_along(all_data_frames)){
+  data_by_weeks <- all_data_frames[[i]]
+  data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
+                             levels = c(1, 2, 3, 4, 5))
+  file_name <- paste0(df_names[i], ".rds")
+  best_AIC <- 10^9
+  opt_param <- 0
   init_params <- kum_par
   lower_bounds <- c(0.00001, 0.00001)
   opt_data <- data_by_weeks 
@@ -77,774 +112,60 @@ opt_param <- 0
     opt_param <- best_params
   }
 
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
+  data_by_weeks$f_best_fun <- f_kum(as.matrix(
+    data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
+    steps, opt_param$a, opt_param$b)
+  opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
+  summary(opt_model)
 
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
+  ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
+    geom_point()
 
 # 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
+  new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
+  predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
 
 # Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
+  predicted_probs_matrix <- do.call(rbind, predicted_probs)
 
 # Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
+  random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
 
 # Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
+  for(i in 1:nrow(predicted_probs_matrix)) {
+    random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
+                                        size = N, 
+                                        replace = TRUE, 
+                                        prob = predicted_probs_matrix[i, ])
 }
 
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
+  tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
+  n_steps <- length(steps) - 1
+  points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
+  for(i in 1:ncol(random_samples_matrix)) {
+    tmp_data$q2 <- random_samples_matrix[ ,i]
+    tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
+    init_params <- kum_par # uniform distribution
+    lower_bounds <- c(0.00001, 0.00001)
+    opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
+                        lower=lower_bounds, df = tmp_data, steps = steps)
 
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
+    cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
   # done protect against estimation error
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
+    if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE & opt_result$kkt1 == TRUE & opt_result$kkt2 == TRUE) {
  
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
+      points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+      points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+      points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
     }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
-
-# specific data set ========= 2 ===========
-
-#Here choose the csv, it can be with real p1204 or desired only
-all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n == 7)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week < 26)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_is_7_week_less_26.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
-
-best_AIC <- 10^9
-opt_param <- 0
- 
-  init_params <- kum_par
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks 
-  
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
+    else {
+      points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
+      points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
+      points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
+      }
   }
-
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
-
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
-
-# 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
-
-# Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
-
-# Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
-
-# Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
+  points_bootstrap <- na.omit(points_bootstrap)
+  bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
+  saveRDS(bootstrap_data, file_name)
 }
 
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
-
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
-  # done protect against estimation error
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
- 
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
-    }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
-
-
-# specific data set ========= 3 ===========
-
-#Here choose the csv, it can be with real p1204 or desired only
-all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n < 7)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week < 26)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_less_7_week_less_26.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
-
-best_AIC <- 10^9
-opt_param <- 0
- 
-  init_params <- kum_par
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks 
-  
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-  }
-
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
-
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
-
-# 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
-
-# Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
-
-# Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
-
-# Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
-}
-
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
-
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
-  # done protect against estimation error
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
- 
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
-    }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
-
-
-# specific data set ========= 4 ===========
-
-#Here choose the csv, it can be with real p1204 or desired only
-all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n < 8)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week < 14)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_less_8_week_less_14.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
-
-best_AIC <- 10^9
-opt_param <- 0
- 
-  init_params <- kum_par
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks 
-  
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-  }
-
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
-
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
-
-# 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
-
-# Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
-
-# Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
-
-# Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
-}
-
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
-
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
-  # done protect against estimation error
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
- 
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
-    }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
-
-
-# specific data set ========= 5 ===========
-
-#Here choose the csv, it can be with real p1204 or desired only
-all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n < 8)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week > 13)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_less_8_week_more_13.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
-
-best_AIC <- 10^9
-opt_param <- 0
- 
-  init_params <- kum_par
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks 
-  
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-  }
-
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
-
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
-
-# 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
-
-# Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
-
-# Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
-
-# Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
-}
-
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
-
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
-  # done protect against estimation error
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
- 
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
-    }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
-
-
-# specific data set ========= 6 ===========
-
-#Here choose the csv, it can be with real p1204 or desired only
-all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n == 7)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week < 14)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_is_7_week_less_14.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
-
-best_AIC <- 10^9
-opt_param <- 0
- 
-  init_params <- kum_par
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks 
-  
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-  }
-
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
-
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
-
-# 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
-
-# Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
-
-# Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
-
-# Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
-}
-
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
-
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
-  # done protect against estimation error
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
- 
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
-    }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
-
-
-# specific data set ========= 7 ===========
-
-#Here choose the csv, it can be with real p1204 or desired only
-all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n == 7)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week > 13)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_is_7_week_more_13.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
-
-best_AIC <- 10^9
-opt_param <- 0
- 
-  init_params <- kum_par
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks 
-  
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-  }
-
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
-
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
-
-# 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
-
-# Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
-
-# Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
-
-# Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
-}
-
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
-  # done protect against estimation error
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
- 
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
-    }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
-
-
-# specific data set ========= 8 ===========
-
-#Here choose the csv, it can be with real p1204 or desired only
-all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n < 7)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week < 14)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_less_7_week_less_14.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
-
-best_AIC <- 10^9
-opt_param <- 0
- 
-  init_params <- kum_par
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks 
-  
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-  }
-
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
-
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
-
-# 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
-
-# Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
-
-# Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
-
-# Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
-}
-
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
-  # done protect against estimation error
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
- 
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
-    }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
-
-
-# specific data set ========= 9 ===========
-
-#Here choose the csv, it can be with real p1204 or desired only
-all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
-#Here choose for which data you want the model: 
-#n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n < 7)
-#Here choose what content you want: 
-#week < 26 for all content, week < 14 for nature only and week > 13 for slowmo only
-data_by_weeks <- data_by_weeks_n %>% filter(week > 13)
-#if you want to exclude some testers you can do this after this line
-file_name = "bootstrap_n_less_7_week_more_13.rds"
-data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
-                           levels = c(1, 2, 3, 4, 5))
-
-best_AIC <- 10^9
-opt_param <- 0
- 
-  init_params <- kum_par
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_data <- data_by_weeks 
-  
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = opt_data, steps = steps)
-  
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-  }
-
-data_by_weeks$f_best_fun <- f_kum(as.matrix(
-  data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-  steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
-summary(opt_model)
-
-ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
-  geom_point()
-
-# 1. Predict probabilities
-new_data <- data.frame(f_best_fun = data_by_weeks$f_best_fun)
-predicted_probs <- predict(opt_model, newdata = new_data, type = "prob")
-
-# Convert predicted_probs from list to matrix
-predicted_probs_matrix <- do.call(rbind, predicted_probs)
-
-# Pre-allocate a matrix to store the samples
-random_samples_matrix <- matrix(0, nrow = nrow(predicted_probs_matrix), ncol = N)
-
-# Draw random levels based on predicted probabilities for each observation
-for(i in 1:nrow(predicted_probs_matrix)) {
-  random_samples_matrix[i, ] <- sample(1:ncol(predicted_probs_matrix), 
-                                       size = N, 
-                                       replace = TRUE, 
-                                       prob = predicted_probs_matrix[i, ])
-}
-
-tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
-n_steps <- length(steps) - 1
-points_bootstrap <- matrix(0, nrow = n_steps*ncol(random_samples_matrix), ncol = 3)
-for(i in 1:ncol(random_samples_matrix)) {
-  tmp_data$q2 <- random_samples_matrix[ ,i]
-  tmp_data$os <- factor(tmp_data$q2, ordered = TRUE, levels = c(1, 2, 3, 4, 5))
-  init_params <- kum_par # uniform distribution
-  lower_bounds <- c(0.00001, 0.00001)
-  opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
-                       lower=lower_bounds, df = tmp_data, steps = steps)
-  cat(i, kumaraswamy_weights(steps, opt_result$a, opt_result$b), "\n")
-  # done protect against estimation error (może if $kkt1 to proceed)
-  if (is.na(opt_result$kkt1) == FALSE & is.na(opt_result$kkt2) == FALSE) {
- 
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = kumaraswamy_weights(steps, opt_result$a, opt_result$b)
-  }
-  else {
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 1] = i
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 2] = steps[2:(n_steps + 1)]
-    points_bootstrap[((i - 1)*n_steps + 1):(i*n_steps), 3] = NA 
-    }
-}
-points_bootstrap <- na.omit(points_bootstrap)
-bootstrap_data <- tibble(rep = points_bootstrap[ ,1], step = points_bootstrap[ ,2], weight = points_bootstrap[ ,3])
-saveRDS(bootstrap_data, file_name)
