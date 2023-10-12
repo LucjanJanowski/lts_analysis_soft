@@ -90,35 +90,34 @@ for (condition_name in names(conditions_clean)) {
 all_data_frames <- c(data_frames, clean_data_frames)
 df_names <- names(all_data_frames)
 
+# Specify the file path where you want to save the output
+output_file <- "optimal_models_parameters.txt"
+
+# Create an empty file or open an existing file in append mode
+file_con <- file(output_file, "a")
+
 for (i in seq_along(all_data_frames)){
   data_by_weeks <- all_data_frames[[i]]
   data_by_weeks$os <- factor(data_by_weeks$q2, ordered = TRUE, 
                              levels = c(1, 2, 3, 4, 5))
   file_name <- paste0(df_names[i], ".rds")
-  best_AIC <- 10^9
-  opt_param <- 0
+  
   init_params <- kum_par
   lower_bounds <- c(0.00001, 0.00001)
   opt_data <- data_by_weeks 
-  
   opt_result <- optimx(init_params, objective_fun, method="L-BFGS-B", 
                        lower=lower_bounds, df = opt_data, steps = steps)
+  print(opt_result)
+  output <- capture.output(print(opt_result))
+  writeLines(output, con = file_con)
   
-  best_params <- opt_result
-  print(best_params)
-  if (best_params$value < best_AIC)
-  {
-    best_AIC <- best_params$value
-    opt_param <- best_params
-  }
-
   data_by_weeks$f_best_fun <- f_kum(as.matrix(
     data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
-    steps, opt_param$a, opt_param$b)
+    steps, opt_result$a, opt_result$b)
   opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
   summary(opt_model)
 
-  ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
+  ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_result$a, opt_result$b))) + 
     geom_point()
 
 # 1. Predict probabilities
@@ -137,7 +136,7 @@ for (i in seq_along(all_data_frames)){
                                         size = N, 
                                         replace = TRUE, 
                                         prob = predicted_probs_matrix[i, ])
-}
+  }
 
   tmp_data <- data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa", "q2")]
   n_steps <- length(steps) - 1
@@ -169,3 +168,4 @@ for (i in seq_along(all_data_frames)){
   saveRDS(bootstrap_data, file_name)
 }
 
+close(file_con)
