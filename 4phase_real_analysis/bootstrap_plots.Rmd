@@ -13,27 +13,44 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r cars}
 #load each file as seperate rds
-df_s <- data.frame(matrix(ncol = 4, nrow = 0))
-colnames(df_s) <- c('rep', 'step', 'weight', 'name')
+df_y <- data.frame(matrix(ncol = 4, nrow = 0))
+colnames(df_y) <- c('rep', 'step', 'weight', 'name')
 temp = list.files(pattern="*.rds")
 var = length(temp)
-for (y in 1:var) {
-  fname <- temp[y]
-   name <- paste0("df_", fname) ## getting a new name ready
-   x <- readRDS(fname) ## reading in the file
-   x$name <- fname
-   assign(name, x) ## assigning the data the name we created two lines up
-   df_s <- rbind(df_s, x) 
-   pl <- ggplot(x, aes(x = step, y = weight, color = name)) + geom_point(alpha = 0.1)
-   print(pl)
+for (d in 1:var) {
+  fname <- temp[d]
+   namey <- paste0("d_", fname) ## getting a new name ready
+   y <- readRDS(fname)
+   setDT(y)
+   y[, abs_dif := abs(weight - mean(weight)), by = step]
+   desired_length <- nrow(y) * 0.95
+   y$get_in <- 1
+   bootstrap_data_ra <- y[get_in == 1]
+   while (nrow(bootstrap_data_ra) > desired_length) {
+  # Filter by get_in, compute abs_dif and remove rows with max abs_dif rep
+      for (p in unique(bootstrap_data_ra$step)){
+        bootstrap_data_ra <- bootstrap_data_ra[get_in == 1]
+        bootstrap_data_ra[, abs_dif := abs(weight - mean(weight)), by = step]
+        bootstrap_data_tmp <- bootstrap_data_ra %>% filter(step == p)
+        reps_with_max_abs_dif <- bootstrap_data_tmp[abs_dif == max(abs_dif), unique(rep)]
+        bootstrap_data_ra[rep %in% reps_with_max_abs_dif, get_in := 0]
+        }
+      }
+
+   bootstrap_data_ra$name <- fname
+   assign(namey, bootstrap_data_ra)
+   df_y <- rbind(df_y, bootstrap_data_ra)
+   pd <- ggplot(bootstrap_data_ra, aes(x = step, y = weight, color = name)) + geom_point(alpha = 0.1)
+   print(pd)
+   
    
 }
 
-df_nature <- df_s %>% filter(str_detect(name, "less_14"))
+df_nature <- df_y %>% filter(str_detect(name, "less_14"))
 
-df_slowmo <-  df_s %>% filter(str_detect(name, "more_13"))
+df_slowmo <-  df_y %>% filter(str_detect(name, "more_13"))
 
-df_all <-  df_s %>% filter(str_detect(name, "less_26"))
+df_all <-  df_y %>% filter(str_detect(name, "less_26"))
 
 
 
@@ -58,9 +75,9 @@ for (i in seq_along(df_list)) {
 
   summarized_data <- current_df %>%
     group_by(name, step) %>%
-    summarise(mean_weight = mean(weight))
+    summarise(mean_weight = mean(weight), sd_weight = sd(weight))
 
-  p <- ggplot(summarized_data, aes(x = step, y = mean_weight, color = name)) + geom_point(alpha = 0.8) 
+  p <- ggplot(summarized_data, aes(x = step, y = mean_weight, color = name)) + geom_point(alpha = 0.8) + geom_errorbar(aes(ymin = mean_weight - sd_weight/sqrt(length(summarized_data)), ymax = mean_weight + sd_weight/sqrt(length(summarized_data))))
   ggsave(filename = paste("plot_", current_name, ".png", sep = ""), plot = p, width = 8, height = 4)
   ggsave(filename = paste("scattered_", current_name, ".png", sep = ""), plot = z, width = 8, height = 4)
   print(p)
