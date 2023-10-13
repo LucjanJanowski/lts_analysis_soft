@@ -80,9 +80,7 @@ if __name__ == '__main__':
             counts_arr = jnp.sum(arr == np.expand_dims(np.arange(1, 6), 1), axis=1)
 
             hat, opt_state = gsd.fit_mle(counts_arr)
-            # print(opt_state.count)
-            # print(counts_arr)
-            # print(counts_arr.sum())
+
             fhat = jax.tree_util.tree_map(float, hat)
             info = dict(eid=eid, pvs=pvs, **fhat._asdict())
             print(info)
