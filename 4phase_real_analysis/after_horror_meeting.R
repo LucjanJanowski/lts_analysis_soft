@@ -10,7 +10,7 @@ library(boot)
 all_data <- read_csv("phase4_current_results_p1204.csv", col_types = "fnnnnnnnnnnnncc")
 #Here choose for which data you want the model: 
 #n<8 for all data, n==7 for only full weeks and n<7 for only unfull weeks
-data_by_weeks_n <- all_data  %>% filter(n < 8)
+data_by_weeks_n <- all_data  %>% filter(n == 7)
 #Here choose what content you want: 
 #n < 26 for all content, n < 14 for nature only and n > 13 for slowmo only
 data_by_weeks <- data_by_weeks_n %>% filter(week < 26)
@@ -109,8 +109,24 @@ for (i in 1:nrow(kum_par)){
 data_by_weeks$f_best_fun <- f_kum(as.matrix(
   data_by_weeks[,c("mo", "tu", "we", "th", "fr", "sa")]), 
   steps, opt_param$a, opt_param$b)
-opt_model <- clm(os ~ f_best_fun, data = data_by_weeks, family = "binomial")
+opt_model <- clm(os ~ f_best_fun, data = data_by_weeks)
 summary(opt_model)
+
+cor_plot_data <- data_by_weeks %>%
+  filter(n == 7) %>%
+  group_by(week) %>%
+  summarize(f_best_fun = first(f_best_fun), mos = mean(q2))
+
+predicted_probs <- predict(opt_model, newdata = cor_plot_data, type = "prob")
+# Convert predicted_probs from list to matrix
+predicted_probs_matrix <- do.call(rbind, predicted_probs)
+# Create a vector of weights
+weights <- matrix(rep(c(1,2,3,4,5), nrow(cor_plot_data)), nrow = nrow(cor_plot_data), ncol = 5, byrow = TRUE)
+# Calculate the weighted mean of the probabilities
+cor_plot_data$model <- rowSums(predicted_probs_matrix * weights) 
+cor_plot_data %>%
+  mutate(content_type = ifelse(week < 14, "nature", "slowmo")) %>%
+  ggplot(aes(model, mos, color = content_type)) + geom_point()
 
 ggplot(NULL, aes(steps[2:7], kumaraswamy_weights(steps, opt_param$a, opt_param$b))) + 
   geom_point()
