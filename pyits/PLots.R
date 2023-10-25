@@ -10,13 +10,13 @@ library(tikzDevice)
 
 
 
-tikz("kde.tex", width = 5, height = 4,)
+tikz("kde.tex", width = 3.47, height = 2.8)
 
 p<-ggplot( data = hdtv,aes(x=psi, y=rho)) +
   geom_density_2d(aes(color = ..level..),show.legend = TRUE, size=1.)+
   geom_point(data=its, aes(x=psi, y=rho,shape="Its"),size=4,show.legend = TRUE, color="black") +
-  labs(color = "kde HDTV", shape="",    x = "psi",
-    y = "rho")+ scale_color_viridis_c(option="A")+
+  labs(color = "kde HDTV", shape="",    x = "$\\psi$",
+    y = "$\\rho$")+ scale_color_viridis_c(option="A")+
   scale_shape_manual(values = 4) +
   theme_minimal() +
   theme(
