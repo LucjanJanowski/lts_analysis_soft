@@ -1,0 +1,60 @@
+---
+title: "Bootstrap curve"
+author: "Krzysztof Rusek"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+```
+
+
+```{r}
+small_scores_all <- readRDS("~/Documents/lts_analysis_soft/small_scores_all.RDS")
+small_scores_all
+
+x=unique(small_scores_all$step)
+
+```
+
+# TODO
+
+Mam konkretne zadanie z TUFIQoE. Mam pliki jak w załączniku tylko z 10000 wierszy, nie z 10. To wyniki bootstrapu, trzeba policzyć średni wynik a następnie odległość średniokwadratową od każdego zestawu danych do tej średniej. Następnie zostawiamy 95% najmniej odległych krzywych (klasyczny bootstrap). Zdecydowanie potrzebuje to w R bo mam już wszystko inne w R. Masz szansę coś takiego napisać? 
+
+```{r}
+tmp <- small_scores_all[1:150,]
+
+ggplot(tmp, aes(x=step, y=weight)) + geom_path()
+```
+```{r}
+small_scores_all |> 
+  select(rep, weight) 
+```
+```{r}
+small_scores_all$weight |> as.matrix() ->weights
+dim(weights)<-c(10,150)
+
+m<-colMeans(weights)
+
+dist_fun <- function(row) {
+  # Your custom logic here
+  # This example function simply sums the values in each row
+  d <- sum((row-m)^2)
+  return(d)
+}
+
+# Apply the function to each row of the matrix using apply()
+distances <- apply(weights, 1, dist_fun)
+
+sort_idx = order(distances)
+# TODO change to 0.025 for large sample
+percentage<-0.2
+ncut =  round(length(distances) * percentage)
+
+curves = weights[sort_idx[ncut:(length(distances)-ncut)],]
+
+```
+
